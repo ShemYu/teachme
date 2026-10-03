@@ -26,3 +26,15 @@ def test_solutions_extracts_defs_classes_and_asserts(tmp_path):
     assert S.src("add") == ["def add(a, b):", "    return a + b"]
     assert S.src("Box") == ["class Box:", "    x = 1"] and S.body("snippet") == ["y = 2"]
     assert S.asserts("add", [1]) == ["assert add(0, 0) == 0"]
+
+
+def test_cluster_frames_stack_and_state_carries_over():
+    svg = v.cluster(["S1", "S2", "S3"], [
+        {"nodes": {"S1": {"role": "leader", "term": 1}, "S2": {"term": 1}, "S3": {"term": 1}}},
+        {"nodes": {"S1": {"role": "crashed"}}, "msgs": [("S2", "S3", "RequestVote t2", "req")]},
+    ])
+    assert svg.count('class="cf cf-') == 2 and 'class="cf cf-1 s1"' in svg      # frame k is revealed at step k
+    assert svg.count('class="nodim"') == 2                                     # backdrop never dims (no bleed-through)
+    frame1 = svg.split('class="cf cf-1 s1"')[1]
+    assert "CRASHED" in frame1 and "term 1" in frame1                           # S1's term carried over
+    assert 'class="cm cm-0"' in frame1 and "RequestVote t2" in frame1

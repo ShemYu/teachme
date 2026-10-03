@@ -38,7 +38,7 @@ teach me how Raft leader election works, as a video
 - **Voices: free or premium.** The free voice is macOS `say`. ElevenLabs is optional, with the cost shown before anything is billed.
 - **It stays in its lane.** It makes study lessons only, and doesn't trigger for release videos, demos, or promos.
 
-**Compared with no skill**, on the same Raft prompt in one run each: teachme passed 11/11 quality checks and the baseline passed 9/11. Both were accurate. teachme added depth, tested code, the paper citation, and the review player.
+**Compared with no skill**, on the same Raft prompt, one run per round: teachme passed 11/11 (baseline 9/11) in round 1, and 12/12 (baseline 9/12) in round 2 with the new cluster diagram. teachme added depth, tested code, the paper citation, and the review player; the round-2 baseline also miscounted votes in its main example.
 
 ## Good prompts to try
 

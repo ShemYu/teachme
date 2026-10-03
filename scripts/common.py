@@ -107,14 +107,14 @@ def slide_title(html):
     return re.sub(r"<[^>]+>", "", m.group(1).replace("<br>", " ")) if m else ""
 
 
-def _chrome(url, extra, done, timeout=30):
+def _chrome(url, extra, done, timeout=30, stdout=subprocess.DEVNULL):
     """Chrome headless often never exits on macOS: run it, wait for `done()`, then kill it."""
     if not os.path.exists(CHROME):
         raise LessonError(f"Google Chrome not found at {CHROME}; install it or set CHROME=/path/to/chrome")
     prof = tempfile.mkdtemp(prefix="teachme-chrome-")
     p = subprocess.Popen([CHROME, "--headless=new", "--disable-gpu", "--hide-scrollbars", "--no-first-run",
                           "--force-device-scale-factor=1", f"--user-data-dir={prof}", *extra, url],
-                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+                         stdout=stdout, stderr=subprocess.DEVNULL)
     try:
         return done(p, time.time() + timeout)
     finally:
@@ -134,17 +134,23 @@ def screenshot(url, png, size=(1920, 1080)):
 
 
 def dump_dom(url):
+    """The page's DOM after scripts ran. Chrome writes it to a temp file, not a pipe: through a pipe, headless
+    Chrome can stop after one 64 KiB pipe buffer and the rest of the page never arrives."""
+    with tempfile.NamedTemporaryFile(prefix="teachme-dom-", suffix=".html", delete=False) as f:
+        path = f.name
     def done(p, deadline):
-        out = b""
-        os.set_blocking(p.stdout.fileno(), False)
         while time.time() < deadline:
-            chunk = p.stdout.read() or b""
-            out += chunk
+            with open(path, "rb") as fh:
+                out = fh.read()
             if b"</html>" in out:
                 return out.decode("utf-8", "replace")
             time.sleep(0.1)
-        raise RuntimeError(f"dump-dom timed out: {url}")
-    return _chrome(url, ["--window-size=1920,1080", "--virtual-time-budget=3000", "--dump-dom"], done)
+        raise LessonError(f"Chrome did not return the page within the time limit: {url}")
+    try:
+        with open(path, "wb") as sink:
+            return _chrome(url, ["--window-size=1920,1080", "--virtual-time-budget=3000", "--dump-dom"], done, stdout=sink)
+    finally:
+        os.remove(path)
 
 
 def file_url(path, query=""):

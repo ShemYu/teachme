@@ -153,3 +153,85 @@ def ivrow(label, bars, tag="", n=10, unit=42, cls=""):
 def card(icon, title, text, cls="", red=False):
     return (f'<div class="card {cls}"><div class="ic{" red" if red else ""}">{icon}</div>'
             f'<div><b>{title}</b><br><span class="muted">{text}</span></div></div>')
+
+
+# ---------------------------------------------------------------- cluster diagram: servers + messages, frame by frame
+_ROLE = {  # fill, stroke, label colour
+    "follower": ("#1b2747", "#7c9cff", "#c9d4ff"), "candidate": ("#3a2e10", "#fbbf24", "#fde68a"),
+    "leader": ("#0f3b33", "#5eead4", "#b8fff1"), "crashed": ("#161b26", "#4b5568", "#6b7280"),
+}
+_MSG = {"req": "#7c9cff", "grant": "#4ade80", "reject": "#f87171", "beat": "#5eead4"}
+
+
+def _ring_positions(names, w, h, r):
+    import math
+    n = len(names)
+    return {s: (w / 2 + r * math.sin(2 * math.pi * i / n), h / 2 - r * math.cos(2 * math.pi * i / n) + 10)
+            for i, s in enumerate(names)}
+
+
+def _cluster_frame(names, pos, state, msgs, w, h, node_r):
+    import math
+    out = [f'<rect class="nodim" x="1" y="1" width="{w - 2}" height="{h - 2}" rx="18" fill="#0e1420" stroke="#26324a"/>']
+    for k, (src, dst, label, kind) in enumerate(msgs):                 # messages under the nodes
+        (x1, y1), (x2, y2) = pos[src], pos[dst]
+        dx, dy = x2 - x1, y2 - y1; d = math.hypot(dx, dy) or 1; ux, uy = dx / d, dy / d
+        off = 9 if src < dst else -9                                     # opposite directions don't overlap
+        px, py = -uy * off, ux * off
+        sx, sy = x1 + ux * (node_r + 6) + px, y1 + uy * (node_r + 6) + py
+        ex, ey = x2 - ux * (node_r + 12) + px, y2 - uy * (node_r + 12) + py
+        col = _MSG.get(kind, "#8d97ab"); dash = ' stroke-dasharray="8 7"' if kind == "beat" else ""
+        mx, my = (sx + ex) / 2 + px * 1.6, (sy + ey) / 2 + py * 1.6
+        tw = 11.5 * len(label) + 18
+        out.append(f'<g class="cm cm-{k}"><line x1="{sx:.1f}" y1="{sy:.1f}" x2="{ex:.1f}" y2="{ey:.1f}" stroke="{col}" '
+                   f'stroke-width="3"{dash} marker-end="url(#ah-{kind})"/>'
+                   + (f'<rect x="{mx - tw / 2:.1f}" y="{my - 15:.1f}" width="{tw:.1f}" height="30" rx="8" fill="#0e1420" '
+                      f'stroke="{col}" stroke-width="1.5"/><text x="{mx:.1f}" y="{my + 6:.1f}" text-anchor="middle" '
+                      f'font-size="19" font-weight="600" fill="{col}">{_html.escape(label)}</text>' if label else "")
+                   + "</g>")
+    for s in names:
+        x, y = pos[s]; st = state.get(s, {}); role = st.get("role", "follower")
+        fill, stroke, lab = _ROLE[role]; dash = ' stroke-dasharray="6 6"' if role == "crashed" else ""
+        g = [f'<g class="cn cn-{s}">', f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{node_r}" fill="{fill}" stroke="{stroke}" stroke-width="3"{dash}/>']
+        if st.get("timer") is not None and role != "crashed":            # remaining election timeout, 0..1
+            f = max(0.0, min(1.0, st["timer"])); rr = node_r + 9; circ = 2 * math.pi * rr
+            g.append(f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{rr}" fill="none" stroke="#26324a" stroke-width="5"/>'
+                     f'<circle cx="{x:.1f}" cy="{y:.1f}" r="{rr}" fill="none" stroke="{"#f87171" if f < 0.2 else "#8d97ab"}" '
+                     f'stroke-width="5" stroke-dasharray="{circ * f:.1f} {circ:.1f}" transform="rotate(-90 {x:.1f} {y:.1f})"/>')
+        g.append(f'<text x="{x:.1f}" y="{y - 4:.1f}" text-anchor="middle" font-size="30" font-weight="800" fill="{lab}">{s}</text>'
+                 f'<text x="{x:.1f}" y="{y + 22:.1f}" text-anchor="middle" font-size="13" font-weight="700" letter-spacing="1" '
+                 f'fill="{stroke}">{"CRASHED" if role == "crashed" else role.upper()}</text>')
+        sub = " · ".join(p for p in (f"term {st['term']}" if "term" in st else "",
+                                     f"voted {st['vote']}" if st.get("vote") else "") if p)
+        if sub:
+            g.append(f'<text x="{x:.1f}" y="{y + node_r + 30:.1f}" text-anchor="middle" font-size="19" '
+                     f'font-family="SF Mono, Menlo, monospace" fill="#c3cadb" stroke="#0e1420" stroke-width="6" paint-order="stroke">{sub}</text>')
+        if st.get("log"):                                                 # entry terms, oldest first
+            bw = 26; x0 = x - len(st["log"]) * bw / 2
+            for i, t in enumerate(st["log"]):
+                g.append(f'<rect x="{x0 + i * bw:.1f}" y="{y + node_r + 42:.1f}" width="{bw - 3}" height="24" rx="4" fill="#131a28" '
+                         f'stroke="#26324a"/><text x="{x0 + i * bw + (bw - 3) / 2:.1f}" y="{y + node_r + 60:.1f}" text-anchor="middle" '
+                         f'font-size="15" font-family="SF Mono, Menlo, monospace" fill="#8d97ab">{t}</text>')
+        g.append("</g>"); out.append("".join(g))
+    return "".join(out)
+
+
+def cluster(names, frames, w=880, h=660, ring=230, node_r=54):
+    """Spatial diagram of servers exchanging messages, one full frame per step (a frame covers the one before it,
+    so in the player each step crossfades into the next, like animation). frames[k] is shown from step k:
+      {"nodes": {"S1": {"role": "leader"|"follower"|"candidate"|"crashed", "term": 2, "vote": "S1",
+                        "timer": 0.0-1.0 (remaining election timeout), "log": [1, 1, 3]}},
+       "msgs":  [("S3", "S1", "RequestVote t3", "req"|"grant"|"reject"|"beat"), ...]}
+    Node state carries over from the previous frame; only list what changed. Focus-cue targets:
+    `.cf-K .cn-S3` (a server in frame K), `.cf-K .cm-0` (the first message in frame K), `.cf-K` (the whole frame)."""
+    pos = _ring_positions(names, w, h, ring)
+    defs = "".join(f'<marker id="ah-{k}" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">'
+                   f'<path d="M0,0 L10,5 L0,10 z" fill="{c}"/></marker>' for k, c in _MSG.items())
+    state, layers = {}, []
+    for k, fr in enumerate(frames):
+        for s, st in fr.get("nodes", {}).items():
+            state[s] = {**state.get(s, {}), **st}
+        cls = f"cf cf-{k}" + (f" s{k}" if k else "")
+        layers.append(f'<g class="{cls}">{_cluster_frame(names, pos, state, fr.get("msgs", []), w, h, node_r)}</g>')
+    return (f'<svg class="cluster" viewBox="0 0 {w} {h}" width="{w}" height="{h}" '
+            f'style="font-family:-apple-system,Helvetica Neue,Arial,sans-serif"><defs>{defs}</defs>{"".join(layers)}</svg>')

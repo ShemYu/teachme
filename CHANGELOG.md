@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0 — 2026-10-03
+
+- Visual: `cluster()`, a spatial diagram of servers exchanging messages (role colours, term/vote, election-timer ring, log strip, labelled request/grant/reject/heartbeat arrows), one full frame per step so a protocol plays out like an animation in the player. SKILL.md recommends it for distributed and networked systems. Prompted by the with/without benchmark, where the no-skill baseline's spatial diagram read faster than state tables
+- Player: elements with class `nodim` are never dimmed by the spotlight (a frame's opaque backdrop no longer lets the previous frame show through)
+- Fix: `--validate` could time out on some lessons because headless Chrome stopped writing `--dump-dom` output after one 64 KiB pipe buffer; the DOM now goes to a temp file
+
 ## 1.0.1 — 2026-10-03
 
 - Lessons live outside the skill: new lessons go in `~/teachme-lessons/<name>/` (override with `TEACHME_LESSONS`), and every script accepts a lesson path or just its name (lessons home first, then the bundled examples)

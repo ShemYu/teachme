@@ -57,6 +57,7 @@ When the lesson is **the user's own talk** (their project, for an interview they
 - Use a **trace of frames** (one row per state, revealed in turn) as a stand-in for motion. Keep colour meanings fixed: blue = left pointer, amber = right, teal = current/window, green = hit, red = eliminated.
 - Look for a **reframing slide** that turns a new problem into one already solved (subarray sum = k is Two Sum on prefix sums), and show the two side by side.
 - Code on slides comes from a tested `solutions.py` next to the lesson (asserts for every on-screen example, plus a brute-force cross-check), pulled in with `visuals.Solutions`. Never hand-copy code onto a slide.
+- For systems where things talk to each other (consensus, replication, networking, caches, queues, agents calling tools), draw the actors spatially with `cluster()`: servers on a ring, role colours, and labelled message arrows. Each step is a new frame, so a protocol plays out like an animation. A table of states is precise but slower to read, so use one only beside the diagram when exact values matter.
 - Components: `scripts/visuals.py` (see `references/authoring.md` → Visual-proof components). Slides are still static frames, so there's no continuous motion (see ROADMAP for Manim).
 
 When the topic is a choice between approaches, include an explicit **tradeoff matrix** and a **decision framework** slide; state which option you'd pick under which constraints, and why.

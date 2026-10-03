@@ -115,7 +115,8 @@ Python helpers that return HTML using theme classes; `lesson.py` can `from visua
 | `pgrid(a, ops, cell=80)` | triangle of pair sums `a[i] + a[j]`; cells have classes `cIJ` | ops `(step, kind, cells, label)`: `kill` (red), `acc` (green), `hit`, `probe` (numbered badge). `col(j, rows)` / `row(i, cols)` build cell lists |
 | `ticks(n, unit)` + `ivrow(label, [(s, e, ''/'o')], tag, n, unit)` | intervals on a number line; `'o'` = output colour | keep `n·unit ≤ 460px` in a half-width column |
 | `card(icon, title, text, cls, red)` | the standard `.card` with an icon | |
+| `cluster(names, frames, w, h)` | servers on a ring exchanging messages, one full frame per step (each frame covers the previous one, so steps crossfade in the player) | per frame: `{"nodes": {"S3": {"role": "candidate", "term": 3, "vote": "S3", "timer": 0.2, "log": [1, 3]}}, "msgs": [("S3", "S1", "RequestVote t3", "req"/"grant"/"reject"/"beat")]}`; node state carries over between frames |
 
-Focus-cue targets: grid cells `.c04` (unions like `.c04, .c14, .c24` for a column), frames `.s1>.trow:nth-child(2)`, array cells `.trow:nth-child(1) .cw:nth-child(3)`, interval rows `.ivrow:nth-child(n)` (the ticks row is child 1).
+Focus-cue targets: cluster `.cf-2 .cn-S3` (server S3 in frame 2), `.cf-2 .cm-0` (first message in frame 2), `.cf-2` (whole frame); grid cells `.c04` (unions like `.c04, .c14, .c24` for a column), frames `.s1>.trow:nth-child(2)`, array cells `.trow:nth-child(1) .cw:nth-child(3)`, interval rows `.ivrow:nth-child(n)` (the ticks row is child 1).
 
 Colour meanings are fixed across lessons: blue `L` = left pointer, amber `R` = right, teal `I` = current element or window, green `ok` = hit or accepted, red `bad`/`kill` = conflict or eliminated, `gone` = dimmed.

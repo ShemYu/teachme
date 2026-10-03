@@ -176,7 +176,7 @@ function dimAround(root, targets) {
   parents.forEach(p => {
     if (p !== root && hasText(p)) return;
     for (const ch of p.children) {
-      if (keep.has(ch)) continue;
+      if (keep.has(ch) || ch.classList.contains("nodim")) continue;   // e.g. a frame's opaque backdrop
       if (ch.matches(".section, h2")) ch.classList.add("dim-soft"); else ch.classList.add("dimmed");
     }
   });
