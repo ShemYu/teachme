@@ -1,70 +1,98 @@
 # teachme
 
-A [Claude Code](https://claude.com/claude-code) skill that turns a technical topic into a **narrated study lesson**. Ask Claude to teach you something and you get:
+**Ask Claude Code to teach you anything, and get a narrated lesson video back.** It comes with slides that prove each idea step by step, and a player whose spotlight follows every sentence.
 
-- **An MP4**: 1080p slides with step-by-step reveals, narration, and soft subtitles. It plays anywhere, including on your phone.
-- **A focus player** (`index.html` + `narration.m4a`): the same lesson, but as each sentence is spoken a ring glides to the exact table row, code line, or card being discussed and everything else dims. It has sentence-level seeking, speed control, chapters, and captions, plus a **presenter mode** with a separate notes window for rehearsing a talk.
+[![Watch the 1-minute intro](docs/intro.png)](https://github.com/ShemYu/teachme/releases/download/v1.0.0/teachme-release-v1.0.0.mp4)
 
-Lessons are written in a **visual-proof style** inspired by 3Blue1Brown. The slides show the mechanism rather than describe it: one picture reused across problems, proofs revealed one change of state at a time, and fixed colour meanings. Code on slides is pulled from a `solutions.py` that is tested against brute force, so what's on screen is code that ran.
+## Use it in 3 steps
 
-> **Scope:** study lessons only. For release videos, demos, promos, or social clips, use a different tool. The skill is written to stay out of those requests.
-
-## Requirements
-
-- macOS (the default voice is the built-in `say`) and Google Chrome (used headless to render slides)
-- Python 3.9+
-- Optional: an [ElevenLabs](https://elevenlabs.io) API key for a neural voice
-
-## Install
+**1. Install** (macOS with Google Chrome and Python 3.9+):
 
 ```bash
 git clone https://github.com/ShemYu/teachme ~/.claude/skills/teachme
-~/.claude/skills/teachme/scripts/setup.sh        # .venv with ffmpeg + Pillow
+~/.claude/skills/teachme/scripts/setup.sh
 ```
 
-Then, in Claude Code: *"Teach me how Raft leader election works, as a video."* Claude designs the lesson, writes `lesson.py` and `focus_cues.py`, checks the layout and spotlight placement, and renders both outputs.
+**2. Ask Claude Code for a lesson**, in plain words or with the slash command:
 
-## Build a lesson by hand
+```
+teach me how Raft leader election works, as a video
+/teachme sliding window problems, senior interview level
+```
+
+**3. Watch.** In about 20 minutes Claude hands you two things:
+- **`<topic>.mp4`**: a 1080p narrated video with subtitles that plays anywhere, including your phone.
+- **`player/index.html`**: the same lesson in your browser, with a spotlight on whatever is being said, plus chapters and sentence-by-sentence seeking.
+
+## What makes it different
+
+<img src="docs/spotlight.gif" width="720" alt="The spotlight moves to each row as it is narrated">
+
+- **It shows the mechanism instead of describing it.** Ideas are proved visually, one change at a time. One recurring picture builds up across the lesson, inspired by 3Blue1Brown.
+
+  <img src="docs/proof.png" width="720" alt="A visual proof: every comparison eliminates a whole row or column">
+
+- **The code on screen has been run.** Every snippet comes from a `solutions.py` that's tested, often against a brute-force answer on thousands of random inputs.
+- **The spotlight player** dims everything except the exact table row, code line, or card being narrated. That makes it easy to review, and to rehearse a talk in presenter mode.
+- **It's senior-level by default.** Lessons cover mechanisms, real numbers, tradeoffs, failure modes, and sources, not definitions.
+- **Voices: free or premium.** The free voice is macOS `say`. ElevenLabs is optional, with the cost shown before anything is billed.
+- **It stays in its lane.** It makes study lessons only, and doesn't trigger for release videos, demos, or promos.
+
+**Compared with no skill**, on the same Raft prompt in one run each: teachme passed 11/11 quality checks and the baseline passed 9/11. Both were accurate. teachme added depth, tested code, the paper citation, and the review player.
+
+## Good prompts to try
+
+- `teach me how two pointers work, as a video` (an algorithm, with visual proofs)
+- `make me a lesson on HNSW vs IVF-PQ vs DiskANN with a tradeoff table` (a design choice, with a decision framework)
+- `help me prepare for a system design interview on rate limiters` (interview prep)
+- `turn my notes in ./project.md into a 10-minute talk I can rehearse` (a first-person script, then use presenter mode)
+
+## Example lessons
+
+The source for these is in [`lessons/`](lessons). Each one builds into an MP4 and a player.
+
+| Lesson | Runtime | Shows |
+|---|---|---|
+| `coding-interview-patterns` | ~18 min | Visual proofs: pair grid, trace frames, interval bars, tested `solutions.py` |
+| `agentic-video-understanding` | ~16.5 min | The reference example |
+| `hybridrag-vs-wikirag` | ~16 min | Tradeoff matrix and decision framework |
+| `agent-security-observability` | ~17 min | Interview prep: one prompt worked end to end |
+| `agent-system-design` | ~15.5 min | Agent architecture around a ticket-to-PR coding agent |
 
 ```bash
-.venv/bin/python scripts/build_video.py  lessons/<name> --preview      # layout contact sheets
-.venv/bin/python scripts/build_player.py lessons/<name> --validate     # focus player + selector check
-.venv/bin/python scripts/build_video.py  lessons/<name>                # MP4
+cd ~/.claude/skills/teachme
+.venv/bin/python scripts/build_player.py lessons/coding-interview-patterns --validate   # player
+.venv/bin/python scripts/build_video.py  lessons/coding-interview-patterns              # MP4
 ```
-Outputs go to `lessons/<name>/build/` (git-ignored). Lessons are Python files, so only build lessons you trust.
+
+## What it costs
+
+Measured on a 19-minute lesson with 21 slides:
+
+| Stage | Time | Cost |
+|---|---|---|
+| Claude writing the lesson | ~15–20 min | ≈ $2.50 at API rates for Claude Opus 5.5¹ |
+| Narration with macOS `say` | 1.5 min | free |
+| Narration with ElevenLabs (17,210 characters) | 2.6 min | ≈ $1.38² |
+| Rendering the MP4 and the player | ~3 min | free |
+
+¹ Measured from the session transcript: 22 model calls; 56k output, 123k cache-write, and 1.8M cache-read tokens. On a Claude Pro or Max plan this counts against your plan's usage limits instead.
+² `--estimate` prints the exact figure for your lesson before anything is billed.
 
 ## Optional: ElevenLabs voice
 
 ```bash
-.venv/bin/python scripts/keys.py set                                       # hidden prompt, or a native dialog when an agent runs it
-.venv/bin/python scripts/build_player.py lessons/<name> --tts elevenlabs --estimate    # characters, ≈ USD, plan left; spends nothing
-.venv/bin/python scripts/build_player.py lessons/<name> --tts elevenlabs               # synthesizes once into a per-sentence cache
-.venv/bin/python scripts/build_video.py  lessons/<name> --tts elevenlabs               # the MP4 reuses that cache: billed once
+.venv/bin/python scripts/keys.py set                                                  # hidden prompt, or a native dialog when Claude runs it
+.venv/bin/python scripts/build_player.py lessons/<name> --tts elevenlabs --estimate   # characters, ≈ USD, plan left; spends nothing
+.venv/bin/python scripts/build_player.py lessons/<name> --tts elevenlabs              # synthesizes once into a per-sentence cache
+.venv/bin/python scripts/build_video.py  lessons/<name> --tts elevenlabs              # the MP4 reuses that cache, so you're billed once
 ```
 
-Paid builds stop at `--max-chars` (default 30,000), when your plan is out of characters, or when the voice isn't available to your key. Rebuilds only bill sentences whose text changed.
+Or just tell Claude "use the ElevenLabs voice". It shows you the estimate and asks before spending. Paid builds stop at `--max-chars` (default 30,000), or when your plan is out of characters. Rebuilds only bill sentences whose text changed.
 
-### Keys stay out of the repo and the chat
+**Your key never touches the repo or the chat.** Keys resolve through a small registry (`scripts/secret_store.py`): environment variable → macOS Keychain → Linux Secret Service. When Claude runs `keys.py set`, you type the key into a native password dialog, and Claude only sees `saved sk_…abcd`. To add your own store (1Password, Vault…), subclass `SecretBackend` and add `@register`. There's a full example in the module docstring.
 
-Secrets resolve through a small registry (`scripts/secret_store.py`): `env` (`ELEVENLABS_API_KEY`, read-only) → `keychain` (macOS) → `secret-tool` (Linux Secret Service). `keys.py set` asks for the key with a hidden terminal prompt. When a coding agent such as Claude Code runs it, there's no terminal to type into, so it opens a native password dialog instead and the agent only sees `saved sk_…abcd`. Keys are never written to files, passed on a command line, or printed in full, and a key placed in `lesson.py` is refused.
-
-To add a store (1Password, Vault, a cloud secret manager…), subclass `SecretBackend`, decorate it with `@register`, and add its name to the lookup order (`TEACHME_SECRET_BACKENDS=env,keychain,…`). The module docstring has a complete example. Input methods are registered the same way in `scripts/keys.py`.
-
-## What a lesson costs
-
-Measured on one real lesson: *Coding interview patterns*, 21 slides, 241 narrated sentences, 19 minutes of video.
-
-| Stage | Time | Cost |
-|---|---|---|
-| Claude authoring (design, slides, narration, focus cues, layout checks) | ~15–20 min | ≈ $2.50 at API rates for Claude Opus 5.5¹ |
-| Narration with macOS `say` | 1.5 min | free |
-| Narration with ElevenLabs (`eleven_multilingual_v2`, 17,210 characters) | 2.6 min | ≈ $1.38 at pay-as-you-go list price² |
-| Render MP4 (57 clips) and build the focus player | ~3 min | free |
-
-¹ Token usage from the Claude Code session transcript for a comparable 16-slide lesson: 22 model calls, 56k output, 123k cache-write, and 1.8M cache-read tokens, priced at $20 / $8 / $0.20 per million (Opus 5.5 with a 1-hour cache). On a Claude Pro or Max plan this counts against your usage limits instead of being billed per token.
-² `--estimate` prints the exact figure for your lesson before anything is billed.
-
-## Layout
+## Reference
 
 | Path | What |
 |---|---|
@@ -79,19 +107,11 @@ Measured on one real lesson: *Coding interview patterns*, 21 slides, 241 narrate
 | `tests/` | Unit tests (`pytest -q tests`; no Chrome, `say`, or network needed) |
 | `evals/evals.json` | Trigger and quality prompts for iterating on the skill |
 
-## Example lessons
+Lessons are Python files and run with your permissions, so only build lessons you trust. Outputs go to `lessons/<name>/build/`, which git ignores.
 
-| Lesson | Runtime | Shows |
-|---|---|---|
-| `agentic-video-understanding` | ~16.5 min | Reference example |
-| `coding-interview-patterns` | ~18 min | Visual-proof style: pair grid, trace frames, interval bars, tested `solutions.py` |
-| `hybridrag-vs-wikirag` | ~16 min | Tradeoff matrix and decision framework |
-| `agent-security-observability` | ~17 min | Interview-prep format: one prompt worked end to end |
-| `agent-system-design` | ~15.5 min | Agent architecture around a ticket-to-PR coding agent |
+## Contributing
 
-## Contributing and versioning
-
-See [CONTRIBUTING.md](CONTRIBUTING.md). `VERSION` is semver for the skill (scripts, theme, player, SKILL.md). Built MP4s carry it in their `comment` metadata, and the player carries it in its data. Security issues: see [SECURITY.md](SECURITY.md).
+See [CONTRIBUTING.md](CONTRIBUTING.md). For security issues, see [SECURITY.md](SECURITY.md). `VERSION` follows semver, and built MP4s carry it in their metadata.
 
 ## License
 
