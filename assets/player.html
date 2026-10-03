@@ -1,0 +1,336 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>/*TITLE*/</title>
+<style>
+/*SLIDE_CSS*/
+/* ---- player overrides ---- */
+html,body{width:100%;height:100%;overflow:hidden;background:#05070c}
+body{display:flex;flex-direction:column;font-family:-apple-system,"SF Pro Text","Helvetica Neue",Arial,sans-serif}
+#viewport{flex:1;min-height:0;position:relative}
+#stage{position:absolute;left:50%;top:50%;width:1920px;height:1080px;transform-origin:0 0;overflow:hidden;border-radius:6px;
+  background:radial-gradient(1200px 700px at 85% -10%,#1b2750 0%,transparent 60%),var(--bg);box-shadow:0 20px 80px #000a}
+.slide{position:absolute;inset:0;opacity:0;pointer-events:none;transition:opacity .45s ease}
+.slide.active{opacity:1;pointer-events:auto}
+/* step reveals */
+/* spotlight */
+.frame *{transition:opacity .45s ease}
+.frame .rv{transition:opacity .5s ease,filter .5s ease}
+.rv.rv-hidden{opacity:0 !important;filter:blur(6px)}
+.dimmed{opacity:.28 !important}
+pre .ln{display:block;min-height:1.5em;border-radius:6px}
+.dim-soft{opacity:.55 !important}
+#ring{position:absolute;z-index:20;pointer-events:none;border:3px solid var(--teal);border-radius:16px;
+  box-shadow:0 0 0 6px #5eead422,0 0 36px #5eead466;opacity:0;
+  transition:left .55s cubic-bezier(.2,.8,.2,1),top .55s cubic-bezier(.2,.8,.2,1),width .55s cubic-bezier(.2,.8,.2,1),height .55s cubic-bezier(.2,.8,.2,1),opacity .35s ease}
+#ring.on{opacity:1;animation:pulse 2.4s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 10px #5eead411,0 0 48px #5eead488}}
+#ring .tag{position:absolute;left:-3px;top:-34px;background:var(--teal);color:#062a26;font:700 16px/1 -apple-system;
+  letter-spacing:.1em;text-transform:uppercase;padding:8px 12px;border-radius:8px 8px 8px 0}
+#ring.below .tag{top:auto;bottom:-34px;border-radius:0 8px 8px 8px}
+.notrans, .notrans *{transition:none !important;animation:none !important}
+/* captions + controls */
+#caption{min-height:74px;padding:10px 24px 6px;text-align:center;color:#e8ecf4;font-size:clamp(16px,1.6vw,23px);line-height:1.4;
+  display:flex;align-items:center;justify-content:center}
+#caption span{max-width:1300px}
+#caption.off{visibility:hidden}
+#bar{display:flex;align-items:center;gap:10px;padding:8px 18px 14px;color:#aab3c5;font-size:14px}
+#bar button,#bar select{background:#141b2a;color:#e8ecf4;border:1px solid #26324a;border-radius:8px;height:34px;min-width:34px;padding:0 10px;font:inherit;cursor:pointer}
+#bar button:hover{border-color:var(--accent)}
+#bar button.on{border-color:var(--teal);color:var(--teal)}
+#play{min-width:44px;font-size:16px}
+#time{font-variant-numeric:tabular-nums;min-width:96px;text-align:center}
+#track{flex:1;position:relative;height:28px;cursor:pointer}
+#track .rail{position:absolute;left:0;right:0;top:12px;height:4px;background:#26324a;border-radius:2px}
+#track .fill{position:absolute;left:0;top:12px;height:4px;background:var(--accent);border-radius:2px}
+#track .tick{position:absolute;top:8px;width:2px;height:12px;background:#56627c}
+#track .knob{position:absolute;top:7px;width:14px;height:14px;margin-left:-7px;border-radius:50%;background:#fff}
+#track .tip{position:absolute;bottom:26px;transform:translateX(-50%);background:#141b2a;border:1px solid #26324a;color:#e8ecf4;
+  padding:4px 8px;border-radius:6px;white-space:nowrap;font-size:13px;display:none}
+#track:hover .tip{display:block}
+#start{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:#05070ce6;cursor:pointer}
+#start .box{text-align:center;color:#e8ecf4;background:none;border:none}
+#start .big{font-size:44px;font-weight:800;margin:18px 0 8px}
+#start .pl{width:96px;height:96px;border-radius:50%;background:var(--teal);color:#062a26;display:grid;place-items:center;font-size:40px;margin:0 auto}
+#start .keys{color:#8d97ab;font-size:15px;margin-top:18px;line-height:1.8}
+kbd{background:#141b2a;border:1px solid #26324a;border-radius:4px;padding:1px 6px;font:13px "SF Mono",Menlo,monospace;color:#cfd6e6}
+/* presenter mode: you talk and advance; a notes window follows along */
+body.present #caption,body.present #bar{display:none}
+body.present #stage{border-radius:0;box-shadow:none}
+body.present #viewport{cursor:none}
+#start{cursor:default}
+#start .modes{display:flex;gap:16px;justify-content:center;margin-top:26px}
+#start .modes button{font:600 18px -apple-system,sans-serif;padding:14px 24px;border-radius:12px;border:1px solid #26324a;background:#141b2a;color:#e8ecf4;cursor:pointer}
+#start .modes button.pri{background:var(--teal);color:#062a26;border-color:var(--teal)}
+#start .modes button:hover{border-color:var(--teal)}
+#notesView{display:none;position:fixed;inset:0;background:#07090f;color:#e8ecf4;padding:26px 34px;flex-direction:column;gap:16px;overflow:auto}
+body.notes #notesView{display:flex}
+body.notes #viewport,body.notes #caption,body.notes #bar,body.notes #start{display:none}
+#notesView .top{display:flex;justify-content:space-between;align-items:baseline;gap:20px}
+#notesView .sl{font-size:14px;letter-spacing:.12em;text-transform:uppercase;color:var(--accent);font-weight:700}
+#notesView .clock{font:700 38px/1 Menlo,monospace}
+#notesView .pace{font-size:14px;color:#8d97ab;text-align:right}
+#notesView .now{font-size:28px;line-height:1.55;color:#aab3c5}
+#notesView .now .cur{color:#fff;background:#5eead426;border-radius:6px;box-shadow:0 0 0 4px #5eead426}
+#notesView .now .done{color:#4b5568}
+#notesView .nx{font-size:17px;color:#8d97ab;line-height:1.5;border-top:1px solid #1b2438;padding-top:12px}
+#notesView .ctl{display:flex;gap:10px;align-items:center;font-size:13px;color:#6b7891}
+#notesView .ctl button{background:#141b2a;color:#e8ecf4;border:1px solid #26324a;border-radius:8px;height:36px;padding:0 14px;cursor:pointer}
+#report{position:fixed;inset:0;z-index:60;background:#05070c;color:#e8ecf4;font:28px/1.5 Menlo,monospace;padding:40px;white-space:pre-wrap;overflow:auto}
+</style>
+</head>
+<body>
+<div id="viewport"><div id="stage"><div id="ring"></div></div></div>
+<div id="caption"><span></span></div>
+<div id="bar">
+  <button id="play" title="Play / pause (Space)">▶</button>
+  <button id="prevS" title="Previous slide (Shift+←)">⏮</button>
+  <button id="prev" title="Previous sentence (←)">‹</button>
+  <button id="next" title="Next sentence (→)">›</button>
+  <button id="nextS" title="Next slide (Shift+→)">⏭</button>
+  <span id="time">0:00 / 0:00</span>
+  <div id="track"><div class="rail"></div><div class="fill"></div><div class="knob"></div><div class="tip"></div></div>
+  <select id="chapter" title="Jump to slide"></select>
+  <select id="speed" title="Speed">
+    <option value="0.8">0.8×</option><option value="1" selected>1×</option><option value="1.15">1.15×</option>
+    <option value="1.3">1.3×</option><option value="1.5">1.5×</option>
+  </select>
+  <button id="tFocus" class="on" title="Spotlight (F)">Focus</button>
+  <button id="tCap" class="on" title="Captions (C)">CC</button>
+</div>
+<div id="start"><div class="box">
+  <div class="big" id="startTitle"></div>
+  <div style="color:#8d97ab">Focus-guided edition: the teal ring shows what's being discussed</div>
+  <div class="modes"><button class="pri" id="mWatch">▶ Watch with narration</button><button id="mPresent">🎤 Present live (no audio)</button></div>
+  <div class="keys">Watch: <kbd>Space</kbd> play/pause &nbsp; <kbd>←</kbd><kbd>→</kbd> sentence &nbsp; <kbd>Shift</kbd>+<kbd>←</kbd><kbd>→</kbd> slide &nbsp; <kbd>F</kbd> spotlight &nbsp; <kbd>C</kbd> captions<br>
+  Present: <kbd>→</kbd>/<kbd>Space</kbd>/clicker next point &nbsp; <kbd>←</kbd> back &nbsp; <kbd>Shift</kbd>+<kbd>→</kbd> next slide &nbsp; <kbd>N</kbd> notes window &nbsp; <kbd>Esc</kbd> exit</div>
+</div></div>
+<div id="notesView">
+  <div class="top"><div><div class="sl" id="nvSlide"></div></div><div><div class="clock" id="nvClock">0:00</div><div class="pace" id="nvPace"></div></div></div>
+  <div class="now" id="nvNow"></div>
+  <div class="nx"><b>Next:</b> <span id="nvNext"></span></div>
+  <div class="ctl"><button id="nvPrev">← Back</button><button id="nvNextBtn">Next point →</button><span>Keys work here too. Share the slides window, keep this one private.</span></div>
+</div>
+<audio id="audio" src="narration.m4a" preload="auto"></audio>
+
+<script>
+const D = /*DATA*/null;
+// narration is spelled for TTS ("A I", "S L A"); show readable text in captions and notes
+const readable = t => t.replace(/\b(?:[A-Z] )+[A-Z]\b/g, m => m.replace(/ /g, ""));
+const $ = s => document.querySelector(s);
+const stage = $("#stage"), ring = $("#ring"), audio = $("#audio");
+const params = new URLSearchParams(location.search);
+let focusOn = true, capOn = true, cur = -1;
+
+try { const p = JSON.parse(localStorage.getItem("teachme-prefs") || "{}");
+  if (p.focus === false) focusOn = false; if (p.cap === false) capOn = false; if (p.speed) $("#speed").value = p.speed; } catch (e) {}
+const savePrefs = () => { try { localStorage.setItem("teachme-prefs", JSON.stringify({focus: focusOn, cap: capOn, speed: $("#speed").value})); } catch (e) {} };
+
+// ---- build slides
+const N = D.slides.length;
+$("#startTitle").textContent = D.title;
+const slideEls = D.slides.map((s, i) => {
+  const el = document.createElement("div");
+  el.className = "slide";
+  const sec = s.section ? `<div class="section">${s.section}</div>` : "";
+  const foot = i === 0 ? "" : `<div class="footer"><span>${D.title}</span><div class="bar"><i style="width:${((i + 1) / N * 100).toFixed(1)}%"></i></div><span>${i}/${N - 1}</span></div>`;
+  el.innerHTML = `<div class="frame">${sec}${s.html}</div>${foot}`;
+  // step-reveal elements: class s1..s11
+  el._rv = [...el.querySelectorAll("[class]")].map(n => {
+    const m = [...n.classList].map(c => /^s(\d+)$/.exec(c)).find(Boolean);
+    if (!m || +m[1] === 0) return null;
+    n.classList.add("rv"); return [n, +m[1]];
+  }).filter(Boolean);
+  stage.insertBefore(el, ring);
+  return el;
+});
+D.slides.forEach((s, i) => { const o = new Option(`${i}. ${s.title.replace(/<[^>]+>/g, "")}`, i); $("#chapter").add(o); });
+
+// ---- layout scaling
+let scale = 1;
+function fit() {
+  const vp = $("#viewport").getBoundingClientRect();
+  scale = Math.min((vp.width - 24) / 1920, (vp.height - 12) / 1080);
+  stage.style.transform = `translate(-50%,-50%) scale(${scale})`;
+  stage.style.transformOrigin = "50% 50%";
+  if (cur >= 0) placeRing(D.cues[cur], false);
+}
+window.addEventListener("resize", fit);
+
+// ---- spotlight
+function clearDim(root) { root.querySelectorAll(".dimmed,.dim-soft").forEach(n => n.classList.remove("dimmed", "dim-soft")); }
+function targetsFor(c) {
+  if (!c.sel) return [];
+  const root = slideEls[c.s].querySelector(".frame");
+  return [...root.querySelectorAll(c.sel)].filter(n => !n.closest(".rv-hidden"));
+}
+function dimAround(root, targets) {
+  const keep = new Set();
+  targets.forEach(t => { for (let n = t; n && n !== root; n = n.parentElement) keep.add(n); });
+  const parents = new Set([root]);
+  keep.forEach(n => n.parentElement && parents.add(n.parentElement));
+  // inside running text (a parent with its own text nodes), dimming inline siblings looks patchy: skip it
+  const hasText = p => [...p.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+  parents.forEach(p => {
+    if (p !== root && hasText(p)) return;
+    for (const ch of p.children) {
+      if (keep.has(ch)) continue;
+      if (ch.matches(".section, h2")) ch.classList.add("dim-soft"); else ch.classList.add("dimmed");
+    }
+  });
+}
+function placeRing(c, animate = true) {
+  const ts = focusOn ? targetsFor(c) : [];
+  if (!ts.length) { ring.classList.remove("on"); return; }
+  const sr = stage.getBoundingClientRect();
+  let l = 1e9, t = 1e9, r = -1e9, b = -1e9;
+  ts.forEach(n => { const q = n.getBoundingClientRect(); l = Math.min(l, q.left); t = Math.min(t, q.top); r = Math.max(r, q.right); b = Math.max(b, q.bottom); });
+  const pad = 8, k = sr.width / 1920;
+  const x = (l - sr.left) / k - pad, y = (t - sr.top) / k - pad, w = (r - l) / k + 2 * pad, h = (b - t) / k + 2 * pad;
+  if (!animate) ring.classList.add("notrans");
+  Object.assign(ring.style, {left: x + "px", top: y + "px", width: w + "px", height: h + "px"});
+  ring.classList.toggle("below", y < 60);
+  ring.classList.add("on");
+  if (!animate) { ring.offsetWidth; ring.classList.remove("notrans"); }
+}
+
+// ---- apply a cue
+function apply(i, animate = true) {
+  const c = D.cues[i], prev = D.cues[cur];
+  const slideChanged = !prev || prev.s !== c.s;
+  cur = i;
+  slideEls.forEach((el, n) => el.classList.toggle("active", n === c.s));
+  const el = slideEls[c.s];
+  el._rv.forEach(([n, st]) => n.classList.toggle("rv-hidden", st > c.k));
+  const root = el.querySelector(".frame");
+  clearDim(root);
+  const ts = focusOn ? targetsFor(c) : [];
+  if (ts.length) dimAround(root, ts);
+  // on a slide change, let the new slide appear before the ring flies in
+  if (slideChanged && animate) { ring.classList.remove("on"); setTimeout(() => cur === i && placeRing(c, false), 380); }
+  else placeRing(c, animate);
+  $("#caption span").textContent = readable(c.text);
+  $("#chapter").value = c.s;
+}
+
+// ---- time sync
+const cueAt = t => { let lo = 0, hi = D.cues.length - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (D.cues[m].t0 <= t) lo = m; else hi = m - 1; } return lo; };
+const fmt = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+let lastT = 0;
+function tick() {
+  const t = audio.currentTime;
+  if (t !== lastT) { lastT = t; const i = cueAt(t); if (i !== cur) apply(i); }
+  const pct = t / D.duration * 100;
+  $("#track .fill").style.width = pct + "%"; $("#track .knob").style.left = pct + "%";
+  $("#time").textContent = `${fmt(t)} / ${fmt(D.duration)}`;
+  requestAnimationFrame(tick);
+}
+const seekCue = i => { i = Math.max(0, Math.min(D.cues.length - 1, i)); audio.currentTime = D.cues[i].t0 + 0.01; apply(i); };
+const seekSlide = s => { s = Math.max(0, Math.min(N - 1, s)); seekCue(D.cues.findIndex(c => c.s === s)); };
+
+// ---- controls
+const setPlay = () => $("#play").textContent = audio.paused ? "▶" : "❚❚";
+const toggle = () => { audio.paused ? audio.play() : audio.pause(); };
+audio.addEventListener("play", setPlay); audio.addEventListener("pause", setPlay);
+$("#play").onclick = toggle;
+$("#prev").onclick = () => seekCue(audio.currentTime - D.cues[cur].t0 > 1.2 ? cur : cur - 1);
+$("#next").onclick = () => seekCue(cur + 1);
+$("#prevS").onclick = () => seekSlide(D.cues[cur].s - 1);
+$("#nextS").onclick = () => seekSlide(D.cues[cur].s + 1);
+$("#chapter").onchange = e => seekSlide(+e.target.value);
+$("#speed").onchange = e => { audio.playbackRate = +e.target.value; savePrefs(); };
+audio.playbackRate = +$("#speed").value;
+const setFocus = v => { focusOn = v; $("#tFocus").classList.toggle("on", v); const i = cur; cur = -1; apply(i, false); cur = i; savePrefs(); };
+const setCap = v => { capOn = v; $("#tCap").classList.toggle("on", v); $("#caption").classList.toggle("off", !v); savePrefs(); };
+$("#tFocus").onclick = () => setFocus(!focusOn);
+$("#tCap").onclick = () => setCap(!capOn);
+const track = $("#track");
+D.slides.forEach((s, i) => { const t = D.cues.find(c => c.s === i).t0; if (!i) return;
+  const d = document.createElement("div"); d.className = "tick"; d.style.left = (t / D.duration * 100) + "%"; track.appendChild(d); });
+const posT = e => { const r = track.getBoundingClientRect(); return Math.max(0, Math.min(1, (e.clientX - r.left) / r.width)) * D.duration; };
+track.onclick = e => { const t = posT(e); audio.currentTime = t; apply(cueAt(t)); };
+track.onmousemove = e => { const t = posT(e), tip = track.querySelector(".tip"), s = D.cues[cueAt(t)].s;
+  tip.style.left = (t / D.duration * 100) + "%"; tip.textContent = `${fmt(t)} · ${D.slides[s].title.replace(/<[^>]+>/g, "")}`; };
+document.addEventListener("keydown", e => {
+  if (e.target.tagName === "SELECT" || presenting || notesMode) return;
+  if (e.code === "Space") { e.preventDefault(); toggle(); }
+  else if (e.key === "ArrowRight") e.shiftKey ? $("#nextS").onclick() : $("#next").onclick();
+  else if (e.key === "ArrowLeft") e.shiftKey ? $("#prevS").onclick() : $("#prev").onclick();
+  else if (e.key === "f" || e.key === "F") setFocus(!focusOn);
+  else if (e.key === "c" || e.key === "C") setCap(!capOn);
+});
+$("#mWatch").onclick = () => { $("#start").remove(); audio.play(); };
+$("#mPresent").onclick = () => { $("#start").remove(); setPresent(true); presentGo(0); openNotes(); };
+
+// ---- presenter mode: no narration; you advance the spotlight point by point while you talk.
+// The notes window is this same page with ?notes; the two stay in sync over a BroadcastChannel.
+const notesMode = params.has("notes");
+const chan = "BroadcastChannel" in window ? new BroadcastChannel("lv-" + D.title) : null;
+let presenting = false;
+const sameGroup = (a, b) => a.s === b.s && a.k === b.k && a.sel === b.sel;
+const groupStart = i => { while (i > 0 && sameGroup(D.cues[i - 1], D.cues[i])) i--; return i; };
+const nextPoint = i => { let j = i + 1; while (j < D.cues.length && sameGroup(D.cues[j], D.cues[i])) j++; return Math.min(j, D.cues.length - 1); };
+const prevPoint = i => { const g = groupStart(i); return g > 0 ? groupStart(g - 1) : 0; };
+const slideStart = s => Math.max(0, D.cues.findIndex(c => c.s === s));
+function presentGo(i) { i = Math.max(0, Math.min(D.cues.length - 1, i)); apply(i); chan && chan.postMessage({type: "at", i}); }
+function setPresent(v) { presenting = v; document.body.classList.toggle("present", v); if (v) audio.pause(); fit(); }
+const openNotes = () => window.open(location.pathname + "?notes", "lv-notes", "width=780,height=660");
+function presentKey(k, shift) {
+  const s = D.cues[cur].s;
+  if (["ArrowRight", "ArrowDown", " ", "PageDown"].includes(k)) presentGo(shift ? (s + 1 < N ? slideStart(s + 1) : cur) : nextPoint(cur));
+  else if (["ArrowLeft", "ArrowUp", "PageUp"].includes(k)) presentGo(shift ? slideStart(Math.max(0, s - 1)) : prevPoint(cur));
+  else if (k === "n" || k === "N") openNotes();
+  else if (k === "Escape") setPresent(false);
+}
+const PKEYS = ["ArrowRight", "ArrowLeft", "ArrowDown", "ArrowUp", " ", "PageDown", "PageUp", "n", "N", "Escape"];
+document.addEventListener("keydown", e => {
+  if (!PKEYS.includes(e.key) || (!presenting && !notesMode)) return;
+  e.preventDefault();
+  if (notesMode) chan && chan.postMessage({type: "key", key: e.key, shift: e.shiftKey});
+  else presentKey(e.key, e.shiftKey);
+});
+if (chan && !notesMode) chan.onmessage = e => {
+  if (e.data.type === "hello" && presenting) chan.postMessage({type: "at", i: cur});
+  else if (e.data.type === "key" && presenting) presentKey(e.data.key, e.data.shift);
+};
+if (notesMode) {
+  document.body.classList.add("notes"); audio.muted = true;
+  const mmss = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
+  let started = null;
+  const render = i => {
+    const c = D.cues[i], g0 = groupStart(i), g1 = nextPoint(i);
+    const idx = D.cues.map((x, n) => n).filter(n => D.cues[n].s === c.s && D.cues[n].k === c.k);
+    $("#nvSlide").textContent = `Slide ${c.s} / ${N - 1} · ${D.slides[c.s].title.replace(/<[^>]+>/g, "")}`;
+    $("#nvNow").innerHTML = idx.map(n => `<span class="${n < g0 ? "done" : (n >= g0 && (n < g1 || g1 === i)) ? "cur" : ""}">${readable(D.cues[n].text)}</span>`).join(" ");
+    const nx = D.cues.find((x, n) => n > idx[idx.length - 1]);
+    $("#nvNext").textContent = nx ? D.cues.filter(x => x.s === nx.s && x.k === nx.k).map(x => readable(x.text)).join(" ") : "— end —";
+    $("#nvPace").textContent = `narrated version is at ${mmss(c.t0)} here`;
+    if (started === null && i > 0) started = Date.now();
+  };
+  if (chan) { chan.onmessage = e => e.data.type === "at" && render(e.data.i); chan.postMessage({type: "hello"}); }
+  $("#nvPrev").onclick = () => chan && chan.postMessage({type: "key", key: "ArrowLeft", shift: false});
+  $("#nvNextBtn").onclick = () => chan && chan.postMessage({type: "key", key: "ArrowRight", shift: false});
+  setInterval(() => { $("#nvClock").textContent = started ? mmss((Date.now() - started) / 1000) : "0:00"; }, 250);
+  render(0);
+}
+if (params.has("present")) { $("#start").remove(); setPresent(true); }
+
+// ---- boot
+setCap(capOn); $("#tFocus").classList.toggle("on", focusOn);
+fit(); apply(0, false); requestAnimationFrame(tick);
+
+// test hooks: ?cue=N renders one cue statically; ?validate lists selectors that match nothing
+if (params.has("cue")) { $("#start") && $("#start").remove(); document.body.classList.add("notrans"); apply(+params.get("cue"), false); }
+if (params.has("validate")) {
+  $("#start") && $("#start").remove(); document.body.classList.add("notrans");
+  const bad = [];
+  D.cues.forEach((c, i) => { apply(i, false); if (c.sel && !targetsFor(c).length) bad.push(`${i} [${c.s}.${c.k}.${c.j}] ${c.sel}`); });
+  const r = document.createElement("div"); r.id = "report";
+  r.textContent = `cues: ${D.cues.length}\nunmatched: ${bad.length}\n\n` + bad.join("\n");
+  document.body.appendChild(r);
+}
+</script>
+</body>
+</html>

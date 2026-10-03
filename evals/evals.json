@@ -1,0 +1,50 @@
+{
+  "skill_name": "teachme",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "make me a video teaching speculative decoding at senior ML engineer level, include the math for acceptance rate and when it doesn't pay off",
+      "expected_output": "A lesson folder with lesson.py + focus_cues.py; MP4 and focus player built; validation passes; content covers draft/target models, acceptance rate math, speedup conditions, failure cases, evaluation",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "I want a ~10 min video to get my head around vector DB index types (HNSW vs IVF-PQ vs DiskANN), with a tradeoff table",
+      "expected_output": "Lesson with tradeoff matrix and decision framework slides; runtime roughly 10 minutes; both outputs built",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "in the hybridrag-vs-wikirag lesson, add a slide on contextual retrieval (prepending chunk context) between hybrid search and graph+vector, and rebuild",
+      "expected_output": "New slide inserted with narration and focus cues; later cue keys renumbered; validation passes; both outputs rebuilt",
+      "files": []
+    },
+    {
+      "id": 4,
+      "prompt": "turn my HybridRAG notes into a 60-second video for a LinkedIn post, punchy hook, vertical format",
+      "expected_output": "Skill should NOT be used: this is audience-facing social content, not a study lesson",
+      "files": [],
+      "should_trigger": false
+    },
+    {
+      "id": 5,
+      "prompt": "make a fancy 60-second release video for my open-source repo, with voice-over",
+      "expected_output": "Skill should NOT be used: a release/launch video is for an audience, not a study lesson",
+      "files": [],
+      "should_trigger": false
+    },
+    {
+      "id": 6,
+      "prompt": "create a short product demo video of our dashboard for the sales team",
+      "expected_output": "Skill should NOT be used: product demo for an audience",
+      "files": [],
+      "should_trigger": false
+    },
+    {
+      "id": 7,
+      "prompt": "I keep forgetting how Raft leader election works. make me a video so I can actually understand it",
+      "expected_output": "Skill used: a study lesson with a visual proof of the election/term mechanism, MP4 and player built, validation passes",
+      "files": []
+    }
+  ]
+}

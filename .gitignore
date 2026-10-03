@@ -1,0 +1,12 @@
+.venv/
+__pycache__/
+lessons/*/build/
+*-workspace/
+.DS_Store
+# secrets: keys live in the macOS Keychain or the environment, never in the repo
+.env
+.env.*
+*.key
+*.secret
+secrets.json
+.secrets/
