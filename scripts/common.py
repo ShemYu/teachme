@@ -30,6 +30,28 @@ except ImportError:
     FFMPEG = shutil.which("ffmpeg") or sys.exit("ffmpeg not found: run scripts/setup.sh and use .venv/bin/python")
 
 
+def lessons_home():
+    """Where your lessons live: $TEACHME_LESSONS, default ~/teachme-lessons. Never inside the skill folder."""
+    return os.path.abspath(os.path.expanduser(os.environ.get("TEACHME_LESSONS", "~/teachme-lessons")))
+
+
+def resolve_lesson(arg):
+    """A lesson path, or a bare name looked up in lessons_home() and then in the bundled examples."""
+    for cand in (arg, os.path.join(lessons_home(), arg), os.path.join(SKILL, "lessons", arg)):
+        if os.path.exists(os.path.join(cand, "lesson.py")):
+            return os.path.abspath(cand)
+    raise LessonError(f"no lesson.py for {arg!r}: looked in ./{arg}, {lessons_home()}/{arg}, and the bundled examples")
+
+
+def build_dir(lesson_dir):
+    """Build output folder. Bundled examples build into lessons_home()/examples/<name>/build so the skill folder
+    stays clean (it may be a read-only or git-managed install)."""
+    inside_skill = os.path.commonpath([lesson_dir, SKILL]) == SKILL
+    if inside_skill:
+        return os.path.join(lessons_home(), "examples", os.path.basename(lesson_dir), "build")
+    return os.path.join(lesson_dir, "build")
+
+
 def theme_css():
     return open(os.path.join(ASSETS, "theme.css")).read()
 
@@ -45,9 +67,7 @@ class Lesson:
     """A lesson directory: lesson.py (required) + focus_cues.py (optional)."""
 
     def __init__(self, path):
-        self.dir = os.path.abspath(path)
-        if not os.path.exists(os.path.join(self.dir, "lesson.py")):
-            raise LessonError(f"no lesson.py in {self.dir}")
+        self.dir = resolve_lesson(str(path))
         m = _load(os.path.join(self.dir, "lesson.py"), "lesson")
         self.slides = getattr(m, "SLIDES", None)
         if not self.slides:
@@ -60,7 +80,7 @@ class Lesson:
         self.eleven = getattr(m, "ELEVENLABS", {})            # optional {voice_id, model, settings}
         cues = os.path.join(self.dir, "focus_cues.py")
         self.cues = _load(cues, "focus_cues").CUES if os.path.exists(cues) else {}
-        self.build = os.path.join(self.dir, "build")
+        self.build = build_dir(self.dir)
         os.makedirs(self.build, exist_ok=True)
 
     def _first_heading(self):

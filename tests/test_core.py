@@ -69,3 +69,16 @@ def test_wrap_pre_lines_keeps_blank_lines_targetable():
 def test_missing_lesson_is_a_clear_error(tmp_path):
     with pytest.raises(LessonError, match="no lesson.py"):
         Lesson(tmp_path / "nope")
+
+
+def test_lessons_resolve_by_name_and_examples_build_outside_the_skill(tmp_path, monkeypatch):
+    import common
+    home = tmp_path / "home"; (home / "mine").mkdir(parents=True)
+    (home / "mine" / "lesson.py").write_text('SLIDES = [("", "<h2>x</h2>", ["Hi."])]\n')
+    monkeypatch.setenv("TEACHME_LESSONS", str(home))
+    L = Lesson("mine")                                   # bare name → lessons home
+    assert L.dir == str(home / "mine") and L.build == str(home / "mine" / "build")
+    ex = Lesson("coding-interview-patterns")             # bundled example → read-only; builds go to the home
+    assert ex.dir.startswith(common.SKILL)
+    assert ex.build == str(home / "examples" / "coding-interview-patterns" / "build")
+    assert not os.path.exists(os.path.join(ex.dir, "build"))

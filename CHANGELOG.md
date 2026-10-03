@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.1 — 2026-10-03
+
+- Lessons live outside the skill: new lessons go in `~/teachme-lessons/<name>/` (override with `TEACHME_LESSONS`), and every script accepts a lesson path or just its name (lessons home first, then the bundled examples)
+- Building a bundled example writes to `~/teachme-lessons/examples/<name>/build/`, so a git-cloned skill folder never collects 100–300 MB build caches or user lessons
+- SKILL.md and README updated; test for name resolution and example build location
+
 ## 1.0.0 — 2026-10-03
 
 First public release, as **teachme** (previously developed privately as `lesson-video`).

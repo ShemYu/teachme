@@ -49,7 +49,7 @@ teach me how Raft leader election works, as a video
 
 ## Example lessons
 
-The source for these is in [`lessons/`](lessons). Each one builds into an MP4 and a player.
+The source for these is in [`lessons/`](lessons). Each one builds into an MP4 and a player, with output in `~/teachme-lessons/examples/`:
 
 | Lesson | Runtime | Shows |
 |---|---|---|
@@ -61,8 +61,8 @@ The source for these is in [`lessons/`](lessons). Each one builds into an MP4 an
 
 ```bash
 cd ~/.claude/skills/teachme
-.venv/bin/python scripts/build_player.py lessons/coding-interview-patterns --validate   # player
-.venv/bin/python scripts/build_video.py  lessons/coding-interview-patterns              # MP4
+.venv/bin/python scripts/build_player.py coding-interview-patterns --validate   # player
+.venv/bin/python scripts/build_video.py  coding-interview-patterns              # MP4
 ```
 
 ## What it costs
@@ -83,9 +83,9 @@ Measured on a 19-minute lesson with 21 slides:
 
 ```bash
 .venv/bin/python scripts/keys.py set                                                  # hidden prompt, or a native dialog when Claude runs it
-.venv/bin/python scripts/build_player.py lessons/<name> --tts elevenlabs --estimate   # characters, ≈ USD, plan left; spends nothing
-.venv/bin/python scripts/build_player.py lessons/<name> --tts elevenlabs              # synthesizes once into a per-sentence cache
-.venv/bin/python scripts/build_video.py  lessons/<name> --tts elevenlabs              # the MP4 reuses that cache, so you're billed once
+.venv/bin/python scripts/build_player.py <name> --tts elevenlabs --estimate   # characters, ≈ USD, plan left; spends nothing
+.venv/bin/python scripts/build_player.py <name> --tts elevenlabs              # synthesizes once into a per-sentence cache
+.venv/bin/python scripts/build_video.py  <name> --tts elevenlabs              # the MP4 reuses that cache, so you're billed once
 ```
 
 Or just tell Claude "use the ElevenLabs voice". It shows you the estimate and asks before spending. Paid builds stop at `--max-chars` (default 30,000), or when your plan is out of characters. Rebuilds only bill sentences whose text changed.
@@ -107,7 +107,7 @@ Or just tell Claude "use the ElevenLabs voice". It shows you the estimate and as
 | `tests/` | Unit tests (`pytest -q tests`; no Chrome, `say`, or network needed) |
 | `evals/evals.json` | Trigger and quality prompts for iterating on the skill |
 
-Lessons are Python files and run with your permissions, so only build lessons you trust. Outputs go to `lessons/<name>/build/`, which git ignores.
+**Your lessons live in `~/teachme-lessons/<name>/`**, outside the skill folder, so `git pull` never collides with your work. Set `TEACHME_LESSONS` to use another folder. Scripts accept a lesson's path or just its name. Building one of the bundled examples writes its output to `~/teachme-lessons/examples/<name>/build/`. Lessons are Python files and run with your permissions, so only build lessons you trust.
 
 ## Contributing
 

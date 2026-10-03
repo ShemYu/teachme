@@ -12,23 +12,25 @@ Turns a topic into two deliverables from one source of truth:
 1. **MP4** — 1080p slides, narrated, soft English subtitles. Plays anywhere, including on a phone for review.
 2. **Focus player** — `index.html` + `narration.m4a`. Same content; as each sentence is spoken, a teal ring glides to the exact element being discussed and everything else dims. Sentence-level seeking, speed, chapters, captions. It also has a **presenter mode** (no audio): the user advances point by point with arrows or a clicker while a separate notes window shows their script, the next step, a timer, and pace against the narrated version — for rehearsing and then giving a talk, such as presenting your own project in an interview.
 
-A lesson is a folder with `lesson.py` (slides + narration) and `focus_cues.py` (what to spotlight per sentence). Existing lessons live in `lessons/` — read one before writing a new one; `lessons/agentic-video-understanding/` is the reference example.
+A lesson is a folder with `lesson.py` (slides + narration) and `focus_cues.py` (what to spotlight per sentence).
+
+**Where lessons live:** create new lessons in `~/teachme-lessons/<name>/` (or `$TEACHME_LESSONS/<name>/` if set), never inside the skill folder. The skill may be a git clone that the user updates, and builds are 100–300 MB. Every script accepts a lesson's path or just its name, and looks up names in the lessons home first. `<skill>/lessons/` holds read-only examples: read one before writing a new lesson (`agentic-video-understanding` is the reference, and `coding-interview-patterns` shows the visual-proof components). Building an example writes its output to `~/teachme-lessons/examples/<name>/build/`, not into the skill.
 
 ## Setup (once per machine)
 
 ```bash
 <skill>/scripts/setup.sh          # creates <skill>/.venv with ffmpeg + Pillow
 ```
-Needs macOS (`say`) and Google Chrome. Run every script with `<skill>/.venv/bin/python` from `<skill>/scripts/`'s parent or with full paths.
+Needs macOS (`say`) and Google Chrome. Run every script by full path with the skill's Python: `<skill>/.venv/bin/python <skill>/scripts/<script>.py <name>`. The commands below abbreviate that as `py scripts/…`.
 
 ## Voice: `say` (free, default) or ElevenLabs (paid)
 
 Narration defaults to macOS `say`. ElevenLabs is an opt-in upgrade billed per character, so never use it unless the user asks for it, and always show the cost first:
 ```bash
-.venv/bin/python scripts/keys.py set                   # no TTY → native password dialog → verified → secret backend
-.venv/bin/python scripts/build_player.py lessons/<name> --tts elevenlabs --estimate   # characters + ≈ USD, spends nothing
-.venv/bin/python scripts/build_player.py lessons/<name> --tts elevenlabs --validate   # synthesizes, capped by --max-chars (default 30000)
-.venv/bin/python scripts/build_video.py  lessons/<name> --tts elevenlabs              # reuses the same audio: billed once
+py scripts/keys.py set                   # no TTY → native password dialog → verified → secret backend
+py scripts/build_player.py <name> --tts elevenlabs --estimate   # characters + ≈ USD, spends nothing
+py scripts/build_player.py <name> --tts elevenlabs --validate   # synthesizes, capped by --max-chars (default 30000)
+py scripts/build_video.py  <name> --tts elevenlabs              # reuses the same audio: billed once
 ```
 - Never ask the user to paste the key into chat, and never write it into any file or command line. If no key is found, tell the user a dialog is about to appear, then run `scripts/keys.py set` yourself (Bash, timeout ≥ 200 s): with no terminal attached it opens a hidden-input macOS dialog, and you only see the masked result ("saved sk_…abcd"). If they cancel, don't retry unasked. `ELEVENLABS_API_KEY` in the environment also works (it wins over stored copies). Storage is a backend registry (`scripts/secret_store.py`); `keys.py backends` shows what this machine supports.
 - Report the `--estimate` line (characters, ≈ USD, plan characters left) to the user and get a yes before the first paid build of a lesson. Rebuilds only bill sentences whose text changed. Builds refuse to start if the plan doesn't have enough characters left.
@@ -70,7 +72,7 @@ Read `references/authoring.md` for the slide API, the layout components in the t
 
 Then preview layout (final state of every slide, 4 per contact sheet):
 ```bash
-.venv/bin/python scripts/build_video.py lessons/<name> --preview
+py scripts/build_video.py <name> --preview
 ```
 Look at every sheet. Fix overflow into the footer, text that's too small, empty slides, and elements that never appear because their `sN` exceeds the step count.
 
@@ -81,13 +83,13 @@ For each `"slide.step"` give one CSS selector per sentence of that step's narrat
 ### 4. Build, validate, inspect
 
 ```bash
-.venv/bin/python scripts/build_player.py lessons/<name> --validate --shots 3.1.0 6.0.4 9.2.1
-.venv/bin/python scripts/build_video.py lessons/<name>
+py scripts/build_player.py <name> --validate --shots 3.1.0 6.0.4 9.2.1
+py scripts/build_video.py <name>
 ```
 - `--validate` fails if any selector matches nothing visible, or if a step's selector count doesn't match its sentence count (the error lists the sentences so you can realign).
 - `--shots` renders the player at given cues (`slide.step.sentence`) into `build/shots-*.png`. Look at a spread of them: is the ring on the right thing, tight, and is the dimming readable?
 
-Outputs land in `lessons/<name>/build/`: `<name>.mp4` and `player/` (`index.html` + `narration.m4a`, keep them together). Copy them wherever the user wants (e.g. `~/Downloads/`); never overwrite a file the user may be watching — write a new name instead.
+Outputs land in `~/teachme-lessons/<name>/build/`: `<name>.mp4` and `player/` (`index.html` + `narration.m4a`, keep them together). Copy them wherever the user wants (e.g. `~/Downloads/`); never overwrite a file the user may be watching — write a new name instead.
 
 ### 5. Report
 
