@@ -1,5 +1,15 @@
 # Changelog
 
+## 1.2.0 — 2026-10-08
+
+Fixes found by building the same lesson with teachme and with a motion-explainer prompt, then measuring both.
+
+- Loudness: narration is leveled to -16 LUFS (`LUFS` in `lesson.py`; `None` keeps the voice's own level). One constant gain for the whole lesson, a limiter that holds peaks 2 dB under -1.5 dBTP, and stereo output so any meter agrees. The 2 dB is measured, not guessed: the AAC encode adds peaks the limiter cannot see, up to 1.7 dB with 1 dB of headroom depending on how the audio lines up with the codec's frames. Both builders print what they measured on the file they wrote and warn if a peak is over the ceiling. A narration that measured -19.5 LUFS with -0.9 dBTP peaks now lands on -16 LUFS
+- Captions: `build_video.py` writes `<name>.srt` beside the MP4, and `--burn-subs` writes `<name>-captions.mp4` with the captions drawn into the picture (chunks of at most two lines, steady 30 fps, the slide footer gives way to them). The default is still a soft subtitle track
+- Contrast: the code-comment color moves from `#6b7891` (3.9:1) to `#8493ad` (5.6:1), and so does the presenter-notes control text; `tests/test_theme.py` checks every theme text color against WCAG AA (4.5:1)
+- Sources: lessons keep a `SOURCES.md` (template in `references/sources-template.md`) mapping every number and claim to its source. The builds copy it beside the MP4 and into the player folder, and print a note when it is missing or still the template
+- Tests: 82, up from 32 (theme contrast, loudness including the encode's true peak across alignments, captions and steady frame rate, sources)
+
 ## 1.1.0 — 2026-10-03
 
 - Visual: `cluster()`, a spatial diagram of servers exchanging messages (role colours, term/vote, election-timer ring, log strip, labelled request/grant/reject/heartbeat arrows), one full frame per step so a protocol plays out like an animation in the player. SKILL.md recommends it for distributed and networked systems. Prompted by the with/without benchmark, where the no-skill baseline's spatial diagram read faster than state tables

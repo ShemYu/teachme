@@ -9,7 +9,7 @@ Study material for one learner. The goal is understanding, not reach — so favo
 
 Turns a topic into two deliverables from one source of truth:
 
-1. **MP4** — 1080p slides, narrated, soft English subtitles. Plays anywhere, including on a phone for review.
+1. **MP4** — 1080p slides, narrated at a steady loudness (−16 LUFS), soft English subtitles, and the same captions as a `.srt` file beside it. Plays anywhere, including on a phone for review. `--burn-subs` makes a second MP4 with the captions drawn into the picture, for muted viewing or players that hide subtitle tracks.
 2. **Focus player** — `index.html` + `narration.m4a`. Same content; as each sentence is spoken, a teal ring glides to the exact element being discussed and everything else dims. Sentence-level seeking, speed, chapters, captions. It also has a **presenter mode** (no audio): the user advances point by point with arrows or a clicker while a separate notes window shows their script, the next step, a timer, and pace against the narrated version — for rehearsing and then giving a talk, such as presenting your own project in an interview.
 
 A lesson is a folder with `lesson.py` (slides + narration) and `focus_cues.py` (what to spotlight per sentence).
@@ -64,6 +64,8 @@ When the topic is a choice between approaches, include an explicit **tradeoff ma
 
 Research anything you're unsure of (papers, numbers, what a term currently means) before writing. If a term is ambiguous, say so on screen and pick a definition. Attribute claims to their source by name, and label qualitative judgments as such.
 
+Keep a `SOURCES.md` next to `lesson.py` (copy `references/sources-template.md`): one row for every number, quote, and non-obvious claim that a slide shows or the narration says, with where it comes from and its scope. Fill it in while you research, not afterwards. Anything you could not source goes under "Not verified" rather than onto a slide as fact. The builds copy it beside the MP4 and into the player folder, and print a note when it is missing.
+
 ### 2. Write `lesson.py`
 
 Read `references/authoring.md` for the slide API, the layout components in the theme, and narration rules. Key ideas:
@@ -90,11 +92,13 @@ py scripts/build_video.py <name>
 - `--validate` fails if any selector matches nothing visible, or if a step's selector count doesn't match its sentence count (the error lists the sentences so you can realign).
 - `--shots` renders the player at given cues (`slide.step.sentence`) into `build/shots-*.png`. Look at a spread of them: is the ring on the right thing, tight, and is the dimming readable?
 
-Outputs land in `~/teachme-lessons/<name>/build/`: `<name>.mp4` and `player/` (`index.html` + `narration.m4a`, keep them together). Copy them wherever the user wants (e.g. `~/Downloads/`); never overwrite a file the user may be watching — write a new name instead.
+Outputs land in `~/teachme-lessons/<name>/build/`: `<name>.mp4` with `<name>.srt` (and `<name>.sources.md` when the lesson has a `SOURCES.md`), and `player/` (`index.html` + `narration.m4a`, keep them together). Copy them wherever the user wants (e.g. `~/Downloads/`); never overwrite a file the user may be watching — write a new name instead.
+
+Both builds level the narration the same way: one gain for the whole lesson toward `LUFS` in `lesson.py` (default −16, `None` to keep the voice's own level), a limiter that holds peaks under −1.5 dBTP, and stereo output. They print what they measured on the files they wrote, for example `audio: -16.2 LUFS, true peak -2.1 dBTP`. Add `--burn-subs` to `build_video.py` for `<name>-captions.mp4`: the captions are drawn at the bottom in chunks of at most two lines, and the slide footer gives way to them.
 
 ### 5. Report
 
-Tell the user where both outputs are, the runtime, what the lesson covers (one line per section), and what you verified vs. didn't (e.g. layout inspected via screenshots; audio not listened to).
+Tell the user where both outputs are, the runtime, what the lesson covers (one line per section), and what you verified vs. didn't (e.g. layout inspected via screenshots; loudness measured by the build, voice not listened to; which claims are in `SOURCES.md` and which are under "Not verified").
 
 ## Iterating on a lesson
 

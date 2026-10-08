@@ -6,8 +6,9 @@ usage: build_player.py LESSON_DIR [--validate] [--shots ID ...] [--out DIR] [--t
 """
 import argparse, json, os, re, shutil, subprocess, sys, wave
 from common import (Lesson, LessonError, run_cli, theme_css, sentences, slide_title, screenshot, dump_dom, file_url,
-                    contact_sheet, FFMPEG, VERSION)
-from narration import Narrator, add_tts_args, HZ, GAP_SENT, GAP_STEP, GAP_SLIDE, LEAD, TAIL
+                    contact_sheet, sources_note, FFMPEG, VERSION)
+from narration import (Narrator, add_tts_args, level_filter, report_loudness,
+                       HZ, GAP_SENT, GAP_STEP, GAP_SLIDE, LEAD, TAIL)
 
 
 def wrap_pre_lines(html):
@@ -59,8 +60,12 @@ def build(L, out, nar, cues):
     wav = os.path.join(L.build, "narration.wav")
     with wave.open(wav, "wb") as w:
         w.setnchannels(1); w.setsampwidth(2); w.setframerate(HZ); w.writeframes(bytes(buf))
-    subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-i", wav, "-c:a", "aac", "-b:a", "80k",
-                    os.path.join(out, "narration.m4a")], check=True)
+    m4a = os.path.join(out, "narration.m4a")
+    lv = nar.leveling([c["text"] for c in cues])         # same gain as the MP4: one level for the whole lesson
+    subprocess.run([FFMPEG, "-y", "-loglevel", "error", "-i", wav, *(["-af", level_filter(lv[0])] if lv else []),
+                    "-c:a", "aac", "-b:a", "96k" if lv else "80k", m4a], check=True)
+    if lv:
+        report_loudness(m4a, f"narration (gain {lv[0]:+.1f} dB toward {L.lufs:g} LUFS)")
 
     data = {"title": L.title, "version": VERSION, "tts": nar.backend, "duration": round(t, 3), "cues": cues,
             "slides": [{"section": sec, "title": slide_title(h), "html": wrap_pre_lines(h)} for sec, h, _ in L.slides]}
@@ -69,6 +74,8 @@ def build(L, out, nar, cues):
                .replace("/*DATA*/null", script_json(data)))
     index = os.path.join(out, "index.html")
     open(index, "w").write(page)
+    if L.sources:
+        shutil.copyfile(L.sources, os.path.join(out, "SOURCES.md"))          # the audit trail travels with the player
     print(f"{index}  ({len(cues)} cues, {t / 60:.1f} min, skill v{VERSION})")
     return index, cues
 
@@ -106,6 +113,9 @@ def main():
         return
     out = a.out or os.path.join(L.build, "player")
     index, cues = build(L, out, nar, cues)
+    note = sources_note(L)
+    if note:
+        print(note)
     ok = True
     if a.validate:
         ok = validate(index)

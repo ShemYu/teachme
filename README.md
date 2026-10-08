@@ -21,7 +21,7 @@ teach me how Raft leader election works, as a video
 ```
 
 **3. Watch.** In about 20 minutes Claude hands you two things:
-- **`<topic>.mp4`**: a 1080p narrated video with subtitles that plays anywhere, including your phone.
+- **`<topic>.mp4`**: a 1080p narrated video with subtitles that plays anywhere, including your phone. The narration is leveled to a steady -16 LUFS, and the captions also come as `<topic>.srt` (add `--burn-subs` for a copy with the captions drawn into the picture).
 - **`player/index.html`**: the same lesson in your browser, with a spotlight on whatever is being said, plus chapters and sentence-by-sentence seeking.
 
 ## What makes it different
@@ -34,7 +34,7 @@ teach me how Raft leader election works, as a video
 
 - **The code on screen has been run.** Every snippet comes from a `solutions.py` that's tested, often against a brute-force answer on thousands of random inputs.
 - **The spotlight player** dims everything except the exact table row, code line, or card being narrated. That makes it easy to review, and to rehearse a talk in presenter mode.
-- **It's senior-level by default.** Lessons cover mechanisms, real numbers, tradeoffs, failure modes, and sources, not definitions.
+- **It's senior-level by default.** Lessons cover mechanisms, real numbers, tradeoffs, failure modes, and sources, not definitions. Each lesson keeps a `SOURCES.md` that maps every number and claim to where it came from.
 - **Voices: free or premium.** The free voice is macOS `say`. ElevenLabs is optional, with the cost shown before anything is billed.
 - **It stays in its lane.** It makes study lessons only, and doesn't trigger for release videos, demos, or promos.
 
@@ -98,6 +98,7 @@ Or just tell Claude "use the ElevenLabs voice". It shows you the estimate and as
 |---|---|
 | `SKILL.md` | Instructions Claude follows, including when not to trigger |
 | `references/authoring.md` | Slide API, theme and visual-proof components, narration and focus-cue rules |
+| `references/sources-template.md` | Template for a lesson's `SOURCES.md` (every number and claim, with its source) |
 | `scripts/build_video.py`, `scripts/build_player.py` | MP4 and focus-player builders |
 | `scripts/common.py`, `scripts/narration.py` | Lesson loading, Chrome/ffmpeg helpers; TTS backends and cache |
 | `scripts/visuals.py` | Visual-proof components: tested code panels, arrays with pointers, trace frames, pair grid, intervals |

@@ -7,6 +7,7 @@
 4. Focus cues
 5. Pitfalls seen in practice
 6. Visual-proof components (scripts/visuals.py)
+7. SOURCES.md
 
 ## 1. lesson.py API
 
@@ -15,6 +16,7 @@ TITLE = "HybridRAG vs WikiRAG"      # optional; footer + player title (default: 
 VOICE, RATE = "Samantha", 182       # optional; any `say -v '?'` voice, words per minute
 TTS = "say"                         # optional; "elevenlabs" needs ELEVENLABS_API_KEY (paid, see SKILL.md)
 ELEVENLABS = {"voice_id": "...", "model": "eleven_multilingual_v2", "settings": {"speed": 1.0}}  # optional
+LUFS = -16.0                        # optional; narration loudness for the MP4 and the player (None keeps the voice's own level)
 
 SLIDES = []
 def slide(section, html, *steps):
@@ -59,7 +61,7 @@ slide("01 · The problem", """
 
 For algorithm and mechanism visuals (arrays and pointers, trace frames, pair grid, intervals), use the helpers in §6 instead of hand-writing markup.
 
-Colors: `--accent` (blue), `--teal`, `--warn` (amber), `--red`, `--good`, `--muted`. Add a new component to `assets/theme.css` only if a lesson truly needs it, and note it in CHANGELOG.
+Colors: `--accent` (blue), `--teal`, `--warn` (amber), `--red`, `--good`, `--muted`. Add a new component to `assets/theme.css` only if a lesson truly needs it, and note it in CHANGELOG. Text colours must reach 4.5:1 against the surface they sit on (the code-comment colour once sat at 3.9:1 and was hard to read on a phone): add a row to `tests/test_theme.py` for any new one.
 
 Density guide: a slide should hold ≤ ~6 bullets or ≤ 6 cards; body text ≥ 21px. If it doesn't fit, split the slide.
 
@@ -120,3 +122,12 @@ Python helpers that return HTML using theme classes; `lesson.py` can `from visua
 Focus-cue targets: cluster `.cf-2 .cn-S3` (server S3 in frame 2), `.cf-2 .cm-0` (first message in frame 2), `.cf-2` (whole frame); grid cells `.c04` (unions like `.c04, .c14, .c24` for a column), frames `.s1>.trow:nth-child(2)`, array cells `.trow:nth-child(1) .cw:nth-child(3)`, interval rows `.ivrow:nth-child(n)` (the ticks row is child 1).
 
 Colour meanings are fixed across lessons: blue `L` = left pointer, amber `R` = right, teal `I` = current element or window, green `ok` = hit or accepted, red `bad`/`kill` = conflict or eliminated, `gone` = dimmed.
+
+## 7. SOURCES.md
+
+Every lesson keeps a `SOURCES.md` next to `lesson.py`, copied from `references/sources-template.md`: a table with one row for each number, quote, and non-obvious claim that a slide shows or the narration says, plus where it comes from and its scope or caveat. The slides already name their sources, but a table is what lets you (or the learner) check a number later, and what shows which claims were never sourced.
+
+- Fill it in while you research. A claim you cannot source goes under "Not verified", and stays off the slides or is labelled as judgment.
+- Source types that work: a paper or doc with its section, a file in the repo, `solutions.py` (tested code and the numbers it computes), a measurement you ran (say how), the learner's own notes.
+- "Left out on purpose" records what you checked and chose not to use, such as a figure from a different setting.
+- The builds copy it to `<name>.sources.md` beside the MP4 and to `player/SOURCES.md`, and print a one-line note when the file is missing, still the template, or has no rows.
