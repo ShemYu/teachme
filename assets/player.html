@@ -31,6 +31,8 @@ pre .ln{display:block;min-height:1.5em;border-radius:6px}
   letter-spacing:.1em;text-transform:uppercase;padding:8px 12px;border-radius:8px 8px 8px 0}
 #ring.below .tag{top:auto;bottom:-34px;border-radius:0 8px 8px 8px}
 .notrans, .notrans *{transition:none !important;animation:none !important}
+/* people who ask for less motion: no crossfades, no pulse, and the ring jumps to its target instead of gliding */
+@media (prefers-reduced-motion: reduce){.slide,.frame *,.frame .rv,#ring{transition:none !important}#ring.on{animation:none !important}}
 /* captions + controls */
 #caption{min-height:74px;padding:10px 24px 6px;text-align:center;color:#e8ecf4;font-size:clamp(16px,1.6vw,23px);line-height:1.4;
   display:flex;align-items:center;justify-content:center}

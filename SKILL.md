@@ -43,6 +43,8 @@ py scripts/build_video.py  <name> --tts elevenlabs              # reuses the sam
 
 Decide the audience level, then the **one thesis** the lesson argues — the sentence a viewer should repeat afterwards. Every slide should serve it. For a senior audience this matters more than coverage: seniors want the mechanism, the numbers, the tradeoffs, and the failure modes, not a tour of definitions.
 
+For a lesson that corrects one common belief, or a short single-idea lesson, a different shape works: **Question** (state the wrong belief, ideally as the picture the learner already has), **Model** (the correct mechanism), **Proof** (a worked case that tests the belief), **Turn** (change one variable and show the outcome flip, so the learner sees the cause), **Payoff** (the thesis in one line, with the opening picture back). Start the lesson on the belief itself rather than on a title and agenda.
+
 Sketch 12–16 slides. A shape that works:
 - Title + agenda → the problem with concrete arithmetic → design space → the thesis
 - Architecture → the 3–5 parts that decide quality (one slide each)
@@ -58,6 +60,7 @@ When the lesson is **the user's own talk** (their project, for an interview they
 - Look for a **reframing slide** that turns a new problem into one already solved (subarray sum = k is Two Sum on prefix sums), and show the two side by side.
 - Code on slides comes from a tested `solutions.py` next to the lesson (asserts for every on-screen example, plus a brute-force cross-check), pulled in with `visuals.Solutions`. Never hand-copy code onto a slide.
 - For systems where things talk to each other (consensus, replication, networking, caches, queues, agents calling tools), draw the actors spatially with `cluster()`: servers on a ring, role colours, and labelled message arrows. Each step is a new frame, so a protocol plays out like an animation. A table of states is precise but slower to read, so use one only beside the diagram when exact values matter.
+- For anything that unfolds in time (election timeouts, retries and backoff, leases, schedulers, pipelines, GC pauses, rate-limit windows), draw it with `lanes()`: one lane per actor on a shared time axis, so which timer ends first, or what overlaps, is visible instead of described. `cluster()` shows who talks to whom and `lanes()` shows when, and they work well on neighbouring slides.
 - Components: `scripts/visuals.py` (see `references/authoring.md` → Visual-proof components). Slides are still static frames, so there's no continuous motion (see ROADMAP for Manim).
 
 When the topic is a choice between approaches, include an explicit **tradeoff matrix** and a **decision framework** slide; state which option you'd pick under which constraints, and why.

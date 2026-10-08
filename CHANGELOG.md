@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.3.0 — 2026-10-08
+
+Ideas borrowed from a motion-explainer prompt, after building the same 90-second Raft lesson with it and with teachme.
+
+- Visual: `lanes()`, timers and events on one shared time axis: a lane per actor, bars that end, dashed "will end here" targets, ✓ ✗ ▶ marks, vertical rules, one frame per step like `cluster()`. It makes "which timer ends first, and do two end together" visible, where `cluster()` shows who talks to whom. SKILL.md recommends it for anything that unfolds in time; `references/authoring.md` §6 documents it
+- Player: respects `prefers-reduced-motion`: no ring pulse, no crossfades, and the spotlight ring jumps to its target instead of gliding
+- SKILL.md: a belief-first lesson shape (Question, Model, Proof, Turn, Payoff) for a lesson that corrects one common belief
+- Tests: 89 in total; `lanes()` is covered for scale, carry-over, reset, escaping and authoring mistakes
+
 ## 1.2.0 — 2026-10-08
 
 Fixes found by building the same lesson with teachme and with a motion-explainer prompt, then measuring both.

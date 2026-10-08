@@ -101,7 +101,7 @@ Or just tell Claude "use the ElevenLabs voice". It shows you the estimate and as
 | `references/sources-template.md` | Template for a lesson's `SOURCES.md` (every number and claim, with its source) |
 | `scripts/build_video.py`, `scripts/build_player.py` | MP4 and focus-player builders |
 | `scripts/common.py`, `scripts/narration.py` | Lesson loading, Chrome/ffmpeg helpers; TTS backends and cache |
-| `scripts/visuals.py` | Visual-proof components: tested code panels, arrays with pointers, trace frames, pair grid, intervals |
+| `scripts/visuals.py` | Visual-proof components: tested code panels, arrays with pointers, trace frames, pair grid, intervals, `cluster()` (who talks to whom), `lanes()` (what happens when) |
 | `scripts/secret_store.py`, `scripts/keys.py`, `scripts/elevenlabs_api.py`, `scripts/tts_voices.py` | Secrets registry and CLI, ElevenLabs helpers |
 | `assets/theme.css`, `assets/player.html` | Slide theme and the player template |
 | `lessons/<name>/` | Example lessons (`lesson.py`, `focus_cues.py`, optional `solutions.py`) |
