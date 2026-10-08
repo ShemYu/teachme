@@ -34,7 +34,7 @@ teach me how Raft leader election works, as a video
 
 - **The code on screen has been run.** Every snippet comes from a `solutions.py` that's tested, often against a brute-force answer on thousands of random inputs.
 - **The spotlight player** dims everything except the exact table row, code line, or card being narrated. That makes it easy to review, and to rehearse a talk in presenter mode.
-- **It's senior-level by default.** Lessons cover mechanisms, real numbers, tradeoffs, failure modes, and sources, not definitions. Each lesson keeps a `SOURCES.md` that maps every number and claim to where it came from.
+- **It's senior-level by default.** Lessons cover mechanisms, real numbers, tradeoffs, failure modes, and sources, not definitions. Lessons Claude writes come with a `SOURCES.md` that maps every number and claim to where it came from (the bundled examples predate it and don't have one yet).
 - **Voices: free or premium.** The free voice is macOS `say`. ElevenLabs is optional, with the cost shown before anything is billed.
 - **It stays in its lane.** It makes study lessons only, and doesn't trigger for release videos, demos, or promos.
 
