@@ -235,3 +235,118 @@ def cluster(names, frames, w=880, h=660, ring=230, node_r=54):
         layers.append(f'<g class="{cls}">{_cluster_frame(names, pos, state, fr.get("msgs", []), w, h, node_r)}</g>')
     return (f'<svg class="cluster" viewBox="0 0 {w} {h}" width="{w}" height="{h}" '
             f'style="font-family:-apple-system,Helvetica Neue,Arial,sans-serif"><defs>{defs}</defs>{"".join(layers)}</svg>')
+
+
+# ---------------------------------------------------------------- lanes: timers and events on one time axis
+_BAR = {  # fill, stroke: one colour per meaning, fixed across lessons
+    "run": ("#3d4a74", "#6c7fb8"),    # a timer or task still running
+    "hot": ("#5eead4", "#5eead4"),    # the one the story follows
+    "tie": ("#fbbf24", "#fbbf24"),
+    "ok": ("#4ade80", "#4ade80"),
+    "bad": ("#f87171", "#f87171"),
+}
+_MARK = {"ok": "#4ade80", "no": "#f87171", "ask": "#7c9cff", "dot": "#e8ecf4", "beat": "#5eead4"}
+
+
+def _glyph(kind, x, y):
+    col = _MARK[kind]
+    if kind == "ok":
+        return f'<path d="M{x - 10:.1f} {y + 1:.1f} L{x - 3:.1f} {y + 9:.1f} L{x + 11:.1f} {y - 9:.1f}" fill="none" stroke="{col}" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round"/>'
+    if kind == "no":
+        return (f'<path d="M{x - 8:.1f} {y - 8:.1f} L{x + 8:.1f} {y + 8:.1f} M{x + 8:.1f} {y - 8:.1f} L{x - 8:.1f} {y + 8:.1f}" '
+                f'fill="none" stroke="{col}" stroke-width="4.5" stroke-linecap="round"/>')
+    if kind == "ask":
+        return f'<polygon points="{x - 8:.1f},{y - 11:.1f} {x + 11:.1f},{y:.1f} {x - 8:.1f},{y + 11:.1f}" fill="{col}"/>'
+    if kind == "beat":
+        return f'<line x1="{x:.1f}" y1="{y - 13:.1f}" x2="{x:.1f}" y2="{y + 13:.1f}" stroke="{col}" stroke-width="4" stroke-linecap="round"/>'
+    return f'<circle cx="{x:.1f}" cy="{y:.1f}" r="8" fill="{col}"/>'
+
+
+def lanes(names, frames, tmax=300, tick=100, axis="", w=1700, row=88, label_w=130):
+    """Timers and events on one shared time axis, one full frame per step (like cluster(): a frame covers the one before
+    it, so steps crossfade in the player). One lane per name, top to bottom. frames[k] is shown from step k:
+      {"axis":    "ms since the last heartbeat",          # axis title; stays until changed
+       "bars":    {"S2": (0, 180, "hot"|"run"|"tie"|"ok"|"bad")},   # a bar in a lane from t0 to t1 (replaces that lane's bar)
+       "targets": {"S2": 240},                              # dashed outline from the bar's end to where it will end; None removes
+       "marks":   [("S4", 180, "ask"|"ok"|"no"|"dot"|"beat", "S4")],  # events at a time, with an optional tag; added to earlier ones
+       "rules":   [(120, "heartbeat")],                     # a vertical line across every lane; replaces earlier rules
+       "reset":   True}                                     # clear bars, targets, marks and rules carried from earlier frames
+    Times run 0..tmax. Focus-cue targets: `.lf-K .lr-S2` (lane S2 in frame K: label, line, bar), `.lf-K .lb-S2` (its bar),
+    `.lf-K .lm-0` (the first mark in frame K; marks sit inside their lane, so a lane's cue keeps its events lit),
+    `.lf-K .lu-0` (the first rule), `.lf-K .lax` (the axis), `.lf-K` (the frame)."""
+    n, x0, x1, top = len(names), label_w + 24, w - 44, 54
+    k = (x1 - x0) / tmax
+    axis_y, h = top + n * row + 14, top + n * row + 106
+    X = lambda t: x0 + t * k
+    Y = lambda lane: top + names.index(lane) * row + row / 2
+
+    def check(lane, *times):
+        if lane not in names:
+            raise ValueError(f"lanes(): {lane!r} is not one of {names}")
+        for t in times:
+            if t is not None and not 0 <= t <= tmax:
+                raise ValueError(f"lanes(): time {t} is outside the axis 0..{tmax}")
+
+    state = {"axis": axis, "bars": {}, "targets": {}, "marks": [], "rules": []}
+    layers = []
+    for f, fr in enumerate(frames):
+        if fr.get("reset"):
+            state.update(bars={}, targets={}, marks=[], rules=[])
+        state["axis"] = fr.get("axis", state["axis"])
+        for lane, (t0, t1, kind) in fr.get("bars", {}).items():
+            check(lane, t0, t1)
+            if kind not in _BAR:
+                raise ValueError(f"lanes(): unknown bar kind {kind!r}; use one of {sorted(_BAR)}")
+            state["bars"][lane] = (t0, t1, kind)
+        for lane, t in fr.get("targets", {}).items():
+            check(lane, t); state["targets"][lane] = t
+        marks_now = fr.get("marks", [])
+        for lane, t, kind, *_ in marks_now:
+            check(lane, t)
+            if kind not in _MARK:
+                raise ValueError(f"lanes(): unknown mark kind {kind!r}; use one of {sorted(_MARK)}")
+        state["marks"] = state["marks"] + [(lane, t, kind, *(tag or [""])) for lane, t, kind, *tag in marks_now]
+        if "rules" in fr:
+            for t, _ in fr["rules"]:
+                check(names[0], t)
+            state["rules"] = list(fr["rules"])
+
+        g = [f'<rect class="nodim" x="1" y="1" width="{w - 2}" height="{h - 2}" rx="18" fill="#0e1420" stroke="#26324a"/>']
+        for i, (t, label) in enumerate(state["rules"]):
+            g.append(f'<g class="lu lu-{i}"><line x1="{X(t):.1f}" y1="{top - 14}" x2="{X(t):.1f}" y2="{axis_y}" stroke="#5eead4" '
+                     f'stroke-width="3" stroke-dasharray="3 9" stroke-linecap="round"/>'
+                     f'<text x="{X(t):.1f}" y="{top - 22}" text-anchor="middle" font-size="20" font-weight="600" fill="#8cf3e0">{_html.escape(label)}</text></g>')
+        for lane in names:
+            cy = Y(lane)
+            r = [f'<g class="lr lr-{lane}">',
+                 f'<line x1="{x0}" y1="{cy:.1f}" x2="{x1}" y2="{cy:.1f}" stroke="#26324a" stroke-width="2"/>',
+                 f'<circle cx="{label_w / 2 + 14:.1f}" cy="{cy:.1f}" r="27" fill="#131a28" stroke="#8d97ab" stroke-width="3"/>'
+                 f'<text x="{label_w / 2 + 14:.1f}" y="{cy + 8:.1f}" text-anchor="middle" font-size="24" font-weight="800" fill="#e8ecf4">{_html.escape(lane)}</text>']
+            if lane in state["bars"]:
+                t0, t1, kind = state["bars"][lane]
+                fill, stroke = _BAR[kind]
+                tgt = state["targets"].get(lane)
+                if tgt is not None and tgt > t1:
+                    r.append(f'<g class="lt lt-{lane}"><rect x="{X(t1):.1f}" y="{cy - 11:.1f}" width="{(tgt - t1) * k:.1f}" height="22" rx="11" '
+                             f'fill="none" stroke="#6c7fb8" stroke-width="2.5" stroke-dasharray="7 6"/>'
+                             f'<polygon points="{X(tgt):.1f},{cy - 13:.1f} {X(tgt) + 13:.1f},{cy:.1f} {X(tgt):.1f},{cy + 13:.1f} {X(tgt) - 13:.1f},{cy:.1f}" '
+                             f'fill="#0e1420" stroke="#6c7fb8" stroke-width="2.5"/></g>')
+                r.append(f'<rect class="lb lb-{lane}" x="{X(t0):.1f}" y="{cy - 11:.1f}" width="{max(1.0, (t1 - t0) * k):.1f}" height="22" '
+                         f'rx="11" fill="{fill}" stroke="{stroke}" stroke-width="2"/>')
+            for i, (mlane, t, kind, tag) in enumerate(state["marks"]):
+                if mlane == lane:
+                    r.append(f'<g class="lm lm-{i}"><circle cx="{X(t):.1f}" cy="{cy:.1f}" r="16" fill="#0e1420"/>{_glyph(kind, X(t), cy)}'
+                             + (f'<text x="{X(t):.1f}" y="{cy + 40:.1f}" text-anchor="middle" font-size="19" font-weight="700" '
+                                f'font-family="SF Mono, Menlo, monospace" fill="{_MARK[kind]}">{_html.escape(tag)}</text>' if tag else "") + "</g>")
+            r.append("</g>")
+            g.append("".join(r))
+        ax = [f'<g class="lax"><line x1="{x0}" y1="{axis_y}" x2="{x1}" y2="{axis_y}" stroke="#8d97ab" stroke-width="2"/>']
+        for t in range(0, tmax + 1, tick):
+            ax.append(f'<line x1="{X(t):.1f}" y1="{axis_y}" x2="{X(t):.1f}" y2="{axis_y + 10}" stroke="#8d97ab" stroke-width="2"/>'
+                      f'<text x="{X(t):.1f}" y="{axis_y + 36}" text-anchor="middle" font-size="20" font-family="SF Mono, Menlo, monospace" fill="#a5afc2">{t}</text>')
+        if state["axis"]:
+            ax.append(f'<text x="{x0}" y="{axis_y + 76}" font-size="20" font-weight="600" letter-spacing="1.5" fill="#a5afc2">{_html.escape(state["axis"])}</text>')
+        g.append("".join(ax) + "</g>")
+        layers.append(f'<g class="lf lf-{f}{f" s{f}" if f else ""}">{"".join(g)}</g>')
+    return (f'<svg class="lanes" viewBox="0 0 {w} {h}" width="{w}" height="{h}" '
+            f'style="font-family:-apple-system,Helvetica Neue,Arial,sans-serif">{"".join(layers)}</svg>')

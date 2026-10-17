@@ -58,7 +58,7 @@ h1.big{font-size:128px;line-height:1.02;letter-spacing:-.035em;margin:26px 0 28p
 .l1{width:40%;background:#2b3a6e}.l2{width:60%;background:#23315c}.l3{width:80%;background:#1c2749}.l4{width:100%;background:#141c33;border:1px dashed var(--teal)}
 .code pre{font:22px/1.5 "SF Mono",Menlo,monospace;color:#d6dcea;white-space:pre}
 .code.wide pre{font-size:23px}.tight-code{padding:22px 30px}.tight-code pre{font-size:21px;line-height:1.42}
-.k{color:#c792ea}.s{color:#a5e3a0}.n{color:#f8c572}.c{color:#6b7891}.f{color:#82aaff}
+.k{color:#c792ea}.s{color:#a5e3a0}.n{color:#f8c572}.c{color:#8493ad}.f{color:#82aaff}
 .grid2 .code{margin-bottom:22px}
 .timeline-wrap{display:flex;flex-direction:column;gap:30px;margin-top:10px}
 .tl-row{display:grid;grid-template-columns:230px 1fr 520px;align-items:center;gap:28px}

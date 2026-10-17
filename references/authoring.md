@@ -7,6 +7,7 @@
 4. Focus cues
 5. Pitfalls seen in practice
 6. Visual-proof components (scripts/visuals.py)
+7. SOURCES.md
 
 ## 1. lesson.py API
 
@@ -15,6 +16,7 @@ TITLE = "HybridRAG vs WikiRAG"      # optional; footer + player title (default: 
 VOICE, RATE = "Samantha", 182       # optional; any `say -v '?'` voice, words per minute
 TTS = "say"                         # optional; "elevenlabs" needs ELEVENLABS_API_KEY (paid, see SKILL.md)
 ELEVENLABS = {"voice_id": "...", "model": "eleven_multilingual_v2", "settings": {"speed": 1.0}}  # optional
+LUFS = -16.0                        # optional; narration loudness for the MP4 and the player (None keeps the voice's own level)
 
 SLIDES = []
 def slide(section, html, *steps):
@@ -59,7 +61,7 @@ slide("01 · The problem", """
 
 For algorithm and mechanism visuals (arrays and pointers, trace frames, pair grid, intervals), use the helpers in §6 instead of hand-writing markup.
 
-Colors: `--accent` (blue), `--teal`, `--warn` (amber), `--red`, `--good`, `--muted`. Add a new component to `assets/theme.css` only if a lesson truly needs it, and note it in CHANGELOG.
+Colors: `--accent` (blue), `--teal`, `--warn` (amber), `--red`, `--good`, `--muted`. Add a new component to `assets/theme.css` only if a lesson truly needs it, and note it in CHANGELOG. Text colours must reach 4.5:1 against the surface they sit on (the code-comment colour once sat at 3.9:1 and was hard to read on a phone): add a row to `tests/test_theme.py` for any new one.
 
 Density guide: a slide should hold ≤ ~6 bullets or ≤ 6 cards; body text ≥ 21px. If it doesn't fit, split the slide.
 
@@ -116,7 +118,17 @@ Python helpers that return HTML using theme classes; `lesson.py` can `from visua
 | `ticks(n, unit)` + `ivrow(label, [(s, e, ''/'o')], tag, n, unit)` | intervals on a number line; `'o'` = output colour | keep `n·unit ≤ 460px` in a half-width column |
 | `card(icon, title, text, cls, red)` | the standard `.card` with an icon | |
 | `cluster(names, frames, w, h)` | servers on a ring exchanging messages, one full frame per step (each frame covers the previous one, so steps crossfade in the player) | per frame: `{"nodes": {"S3": {"role": "candidate", "term": 3, "vote": "S3", "timer": 0.2, "log": [1, 3]}}, "msgs": [("S3", "S1", "RequestVote t3", "req"/"grant"/"reject"/"beat")]}`; node state carries over between frames |
+| `lanes(names, frames, tmax, tick, axis, w, row)` | timers and events on one shared time axis, one lane per name, one full frame per step (frames crossfade like `cluster()`) | per frame: `{"axis": "ms since the last heartbeat", "bars": {"S2": (0, 180, "hot")}, "targets": {"S2": 240}, "marks": [("S4", 180, "ask", "S4")], "rules": [(0, "heartbeat")], "reset": True}`; bar kinds `run`/`hot`/`tie`/`ok`/`bad`, mark kinds `ask`/`ok`/`no`/`dot`/`beat`; a lane has one bar, marks accumulate, state carries over until `reset` |
 
-Focus-cue targets: cluster `.cf-2 .cn-S3` (server S3 in frame 2), `.cf-2 .cm-0` (first message in frame 2), `.cf-2` (whole frame); grid cells `.c04` (unions like `.c04, .c14, .c24` for a column), frames `.s1>.trow:nth-child(2)`, array cells `.trow:nth-child(1) .cw:nth-child(3)`, interval rows `.ivrow:nth-child(n)` (the ticks row is child 1).
+Focus-cue targets: cluster `.cf-2 .cn-S3` (server S3 in frame 2), `.cf-2 .cm-0` (first message in frame 2), `.cf-2` (whole frame); lanes `.lf-1 .lr-S2` (lane S2 in frame 1 with its bar and marks), `.lf-1 .lb-S2` (its bar only), `.lf-1 .lm-0` (first mark), `.lf-1 .lu-0` (first rule), `.lf-1 .lax` (the axis); grid cells `.c04` (unions like `.c04, .c14, .c24` for a column), frames `.s1>.trow:nth-child(2)`, array cells `.trow:nth-child(1) .cw:nth-child(3)`, interval rows `.ivrow:nth-child(n)` (the ticks row is child 1).
 
 Colour meanings are fixed across lessons: blue `L` = left pointer, amber `R` = right, teal `I` = current element or window, green `ok` = hit or accepted, red `bad`/`kill` = conflict or eliminated, `gone` = dimmed.
+
+## 7. SOURCES.md
+
+Every lesson keeps a `SOURCES.md` next to `lesson.py`, copied from `references/sources-template.md`: a table with one row for each number, quote, and non-obvious claim that a slide shows or the narration says, plus where it comes from and its scope or caveat. The slides already name their sources, but a table is what lets you (or the learner) check a number later, and what shows which claims were never sourced.
+
+- Fill it in while you research. A claim you cannot source goes under "Not verified", and stays off the slides or is labelled as judgment.
+- Source types that work: a paper or doc with its section, a file in the repo, `solutions.py` (tested code and the numbers it computes), a measurement you ran (say how), the learner's own notes.
+- "Left out on purpose" records what you checked and chose not to use, such as a figure from a different setting.
+- The builds copy it to `<name>.sources.md` beside the MP4 and to `player/SOURCES.md`, and print a one-line note when the file is missing, still the template, or has no rows.

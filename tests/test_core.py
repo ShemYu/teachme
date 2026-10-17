@@ -82,3 +82,9 @@ def test_lessons_resolve_by_name_and_examples_build_outside_the_skill(tmp_path, 
     assert ex.dir.startswith(common.SKILL)
     assert ex.build == str(home / "examples" / "coding-interview-patterns" / "build")
     assert not os.path.exists(os.path.join(ex.dir, "build"))
+
+
+def test_player_respects_prefers_reduced_motion():
+    css = open(os.path.join(os.path.dirname(__file__), "..", "assets", "player.html"), encoding="utf-8").read()
+    block = css[css.index("@media (prefers-reduced-motion: reduce)"):].split("\n")[0]
+    assert "#ring{transition:none" in block and "#ring.on{animation:none" in block and ".frame *" in block

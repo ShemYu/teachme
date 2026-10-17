@@ -6,7 +6,7 @@ ASSETS = os.path.join(SKILL, "assets")
 VERSION = open(os.path.join(SKILL, "VERSION")).read().strip()
 CHROME = os.environ.get("CHROME", "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 DEFAULT_VOICE, DEFAULT_RATE = "Samantha", 182
-
+DEFAULT_LUFS, TP_CEIL = -16.0, -1.5      # narration loudness (integrated, LUFS) and true-peak ceiling (dBTP): spoken-word web standard
 
 
 class LessonError(Exception):
@@ -78,8 +78,11 @@ class Lesson:
         self.rate = getattr(m, "RATE", DEFAULT_RATE)
         self.tts = getattr(m, "TTS", "say")                  # "say" or "elevenlabs"
         self.eleven = getattr(m, "ELEVENLABS", {})            # optional {voice_id, model, settings}
+        self.lufs = getattr(m, "LUFS", DEFAULT_LUFS)          # narration loudness target; None keeps the voice's raw level
         cues = os.path.join(self.dir, "focus_cues.py")
         self.cues = _load(cues, "focus_cues").CUES if os.path.exists(cues) else {}
+        src = os.path.join(self.dir, "SOURCES.md")
+        self.sources = src if os.path.exists(src) else None   # optional audit trail: every number and claim -> its source
         self.build = build_dir(self.dir)
         os.makedirs(self.build, exist_ok=True)
 
@@ -105,6 +108,18 @@ def lesson_sentences(lesson):
 def slide_title(html):
     m = re.search(r"<h[12][^>]*>(.*?)</h[12]>", html, re.S)
     return re.sub(r"<[^>]+>", "", m.group(1).replace("<br>", " ")) if m else ""
+
+
+def sources_note(lesson):
+    """A one-line hint to print when the lesson has no usable SOURCES.md, else None."""
+    if not lesson.sources:
+        return ("note: no SOURCES.md next to lesson.py. List every number and claim with its source "
+                "(template: references/sources-template.md)")
+    text = open(lesson.sources, encoding="utf-8").read()
+    rows = [l for l in text.splitlines() if l.lstrip().startswith("|") and not re.fullmatch(r"[\s|:-]+", l)]
+    if "<lesson title>" in text or len(rows) < 2:
+        return "note: SOURCES.md is still the template or has no claim rows: add one row per number and claim"
+    return None
 
 
 def _chrome(url, extra, done, timeout=30, stdout=subprocess.DEVNULL):

@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.3.0 — 2026-10-08
+
+Ideas borrowed from a motion-explainer prompt, after building the same 90-second Raft lesson with it and with teachme.
+
+- Visual: `lanes()`, timers and events on one shared time axis: a lane per actor, bars that end, dashed "will end here" targets, ✓ ✗ ▶ marks, vertical rules, one frame per step like `cluster()`. It makes "which timer ends first, and do two end together" visible, where `cluster()` shows who talks to whom. SKILL.md recommends it for anything that unfolds in time; `references/authoring.md` §6 documents it
+- Player: respects `prefers-reduced-motion`: no ring pulse, no crossfades, and the spotlight ring jumps to its target instead of gliding
+- SKILL.md: a belief-first lesson shape (Question, Model, Proof, Turn, Payoff) for a lesson that corrects one common belief
+- Tests: 89 in total; `lanes()` is covered for scale, carry-over, reset, escaping and authoring mistakes
+
+## 1.2.0 — 2026-10-08
+
+Fixes found by building the same lesson with teachme and with a motion-explainer prompt, then measuring both.
+
+- Loudness: narration is leveled to -16 LUFS (`LUFS` in `lesson.py`; `None` keeps the voice's own level). One constant gain for the whole lesson, a limiter that holds peaks 2 dB under -1.5 dBTP, and stereo output so any meter agrees. The 2 dB is measured, not guessed: the AAC encode adds peaks the limiter cannot see, up to 1.7 dB with 1 dB of headroom depending on how the audio lines up with the codec's frames. Both builders print what they measured on the file they wrote and warn if a peak is over the ceiling. A narration that measured -19.5 LUFS with -0.9 dBTP peaks now lands on -16 LUFS
+- Captions: `build_video.py` writes `<name>.srt` beside the MP4, and `--burn-subs` writes `<name>-captions.mp4` with the captions drawn into the picture (chunks of at most two lines, steady 30 fps, the slide footer gives way to them). The default is still a soft subtitle track
+- Contrast: the code-comment color moves from `#6b7891` (3.9:1) to `#8493ad` (5.6:1), and so does the presenter-notes control text; `tests/test_theme.py` checks every theme text color against WCAG AA (4.5:1)
+- Sources: lessons keep a `SOURCES.md` (template in `references/sources-template.md`) mapping every number and claim to its source. The builds copy it beside the MP4 and into the player folder, and print a note when it is missing or still the template. The five bundled examples predate the convention and don't have one yet, so building them prints that note
+- Tests: 82, up from 32 (theme contrast, loudness including the encode's true peak across alignments, captions and steady frame rate, sources)
+
 ## 1.1.0 — 2026-10-03
 
 - Visual: `cluster()`, a spatial diagram of servers exchanging messages (role colours, term/vote, election-timer ring, log strip, labelled request/grant/reject/heartbeat arrows), one full frame per step so a protocol plays out like an animation in the player. SKILL.md recommends it for distributed and networked systems. Prompted by the with/without benchmark, where the no-skill baseline's spatial diagram read faster than state tables

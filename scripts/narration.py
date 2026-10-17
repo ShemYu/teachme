@@ -4,12 +4,64 @@ Backends: "say" (macOS, free, default) and "elevenlabs" (billed per character). 
 model, settings and text, so switching voices never mixes audio and editing one sentence re-synthesizes (and, on a
 paid backend, re-bills) only that sentence.
 """
-import hashlib, json, os, re, subprocess, time, wave
+import hashlib, json, math, os, re, subprocess, tempfile, time, wave
 from concurrent.futures import ThreadPoolExecutor
-from common import LessonError, readable
+from common import LessonError, readable, FFMPEG, TP_CEIL
 
 HZ = 24000                                   # every backend renders 16-bit mono PCM at this rate
 GAP_SENT, GAP_STEP, GAP_SLIDE, LEAD, TAIL = 0.28, 0.55, 1.0, 0.4, 1.5
+
+# ---------------------------------------------------------------- loudness: one gain for the whole lesson
+# Voices render at whatever level their engine likes (one 90-second narration measured -19.5 LUFS with peaks at
+# -0.9 dBTP), so both builders apply the same constant gain, then a limiter, and ship stereo. The measurement is made on the mono
+# voice played in both channels, which is how a stereo player outputs it: a meter that reads the mono file as one
+# channel would show 3 LU lower.
+DUAL_MONO = "pan=stereo|c0=c0|c1=c0"
+
+
+def level_filter(gain_db):
+    """ffmpeg -af chain: the lesson's constant gain, a lookahead limiter that holds peaks 2 dB under TP_CEIL, then the
+    voice in both channels. The 2 dB is for the AAC encode, which adds inter-sample peaks: measured on a narration, the
+    encoded true peak landed up to 1.7 dB above the pre-encode peak with 1 dB of headroom (depending on how the audio
+    lines up with the codec's frames) and at most 0.6 dB above it with 2 dB. The limiter delays the audio by its 5 ms attack;
+    that is far below what anyone can hear against the picture, and it works on older ffmpeg builds."""
+    limit = 10 ** ((TP_CEIL - 2.0) / 20)
+    return f"volume={gain_db:.2f}dB,alimiter=limit={limit:.4f}:attack=5:release=60:level=0,{DUAL_MONO}"
+
+
+def measure_loudness(path, af=""):
+    """(integrated loudness in LUFS, true peak in dBTP) of an audio or video file, after an optional filter chain."""
+    chain = (af + "," if af else "") + "ebur128=peak=true"
+    p = subprocess.run([FFMPEG, "-nostats", "-hide_banner", "-i", path, "-vn", "-af", chain, "-f", "null", "-"],
+                       capture_output=True, text=True)
+    summary = p.stderr.rsplit("Summary:", 1)[-1]
+    found = re.search(r"I:\s+(-?[\d.]+|-inf) LUFS", summary), re.search(r"Peak:\s+(-?[\d.]+|-inf) dBFS", summary)
+    if p.returncode or not all(found):
+        raise LessonError(f"could not measure loudness of {path}: {p.stderr.strip().splitlines()[-1:]}")
+    return tuple(float(m.group(1)) for m in found)
+
+
+def report_loudness(path, label="audio"):
+    """Measure the file the build just wrote, print what it holds, and warn when a peak is over the ceiling."""
+    loud, peak = measure_loudness(path)
+    print(f"{label}: {loud:.1f} LUFS, true peak {peak:.1f} dBTP")
+    if peak > TP_CEIL + 0.05:
+        print(f"warning: that true peak is above {TP_CEIL:g} dBTP: the AAC encode added peaks the limiter could not see")
+    return loud, peak
+
+
+def fit_gain(path, target):
+    """(gain dB, LUFS, dBTP): the constant gain that lands `path` on `target` LUFS once the limiter has acted, with the
+    loudness and true peak measured through that exact filter chain. One or two refinements absorb the limiter."""
+    raw, _ = measure_loudness(path, DUAL_MONO)
+    if not math.isfinite(raw) or raw < -60:
+        raise LessonError("the narration is silent (or nearly): nothing to level")
+    gain = target - raw
+    for n in range(4):
+        loud, peak = measure_loudness(path, level_filter(gain))
+        if abs(target - loud) <= 0.15 or n == 3:
+            return gain, loud, peak
+        gain += target - loud
 
 # ElevenLabs pay-as-you-go list prices, USD per 1,000 characters (elevenlabs.io/pricing/api, checked 2026-10-03).
 # Only used for the pre-flight estimate; subscription plans bill the same characters against monthly credits.
@@ -106,6 +158,20 @@ class Narrator:
             self._synth(text)
         with wave.open(self.path(text)) as w:
             return w.readframes(w.getnframes())
+
+    def leveling(self, texts):
+        """(gain dB, LUFS, dBTP) that bring this narration to the lesson's LUFS target, or None when the lesson sets
+        LUFS = None. Both builders call it with the same sentences, so the player and the MP4 get the same gain."""
+        if self.L.lufs is None:
+            return None
+        fd, tmp = tempfile.mkstemp(suffix=".wav", prefix="teachme-level-")
+        try:
+            with os.fdopen(fd, "wb") as f, wave.open(f, "wb") as w:
+                w.setnchannels(1); w.setsampwidth(2); w.setframerate(HZ)
+                w.writeframes(b"".join(self.pcm(t) for t in texts))     # silence between sentences is gated out anyway
+            return fit_gain(tmp, self.L.lufs)
+        finally:
+            os.remove(tmp)
 
     def _synth(self, text):
         out = self.path(text); tmp = out + ".part"
